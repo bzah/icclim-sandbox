@@ -1,105 +1,93 @@
-from icclim import icclim
-from icclim.util import read
 import logging
-import time
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Type, Union
 
 from xarray.core.dataset import Dataset
 import xarray as xr
-from xclim.core.calendar import percentile_doy
-
-from xclim.indicators import icclim as xicc
-from icclim import icclim
 
 
-# Comparator between icclim 4.x and xclim
 def netcdf_processing():
 
-    ds1 = xr.open_dataset("australie-tx90-no-bs.nc")
-    ds2 = xr.open_dataset("australie-tx90-no-bs.nc")
+    ds1 = xr.open_dataset("xclim_tx90-base-period-91-00.nc")
+    ds2 = xr.open_dataset("ds2-fixed.nc")
     nc_variable = "tx90p"
+    ds2[nc_variable] = ds2[nc_variable].astype(ds1[nc_variable].dtype)
     diff = (ds1[nc_variable] - ds2[nc_variable]) / ds1[nc_variable] * 100
 
     global_mean = float(diff.mean())
     print(f"The average difference is {global_mean}%")
     time_mean = diff.mean(dim="time")
 
-    # compare_metadata(ds, xclim_out, icc_out)
-    # compare_content(xclim_out, icc_out)
+    can_compare_content = compare_metadata(ds1, ds2)
+    # compare_content(ds1_out, icc_out)
 
 
-def compare_metadata(
-    original_ds: xr.Dataset, xclim_output_ds: Dataset, icclim_output_ds: Dataset
-):
-    xlog.info("\n# Metadata comparison")
-    compare_attributes(original_ds, xclim_output_ds, icclim_output_ds)
-    compare_variables(xclim_output_ds, icclim_output_ds, original_ds)
+def compare_metadata(ds1: Dataset, ds2: Dataset) -> bool:
+    # TODO use cf-metadata as a base for comparison
+    can_compare_content = True
+    logging.info("\n# Metadata comparison")
+    if ds1.dims != ds2.dims:
+        can_compare_content = False
+        logging.info("dims are diffrents !")
+    compare_attributes(ds1, ds2)
+    compare_variables(ds1, ds2)
+    return can_compare_content
 
 
-def compare_variables(xclim_output_ds, icclim_output_ds, original_ds):
+def compare_variables(ds1, ds2):
     def name_it(x):
         return x["standard_name"]
 
-    xclim_vars = get_variable_properties(xclim_output_ds, "standard_name")
-    icclim_vars = get_variable_properties(icclim_output_ds, "standard_name")
-    original_ds_vars = get_variable_properties(original_ds, "standard_name")
-    xlog.info("\n original dataset has the following variables :")
-    xlog.info(list(map(name_it, original_ds_vars)))
-    xlog.info("\n xclim dataset has the following variables :")
-    xlog.info(list(map(name_it, xclim_vars)))
-    xlog.info("\n icclim dataset has the following variables :")
-    xlog.info(list(map(name_it, icclim_vars)))
+    ds1_vars = get_variable_properties(ds1, "standard_name")
+    ds2_vars = get_variable_properties(ds2, "standard_name")
+    _vars = get_variable_properties(ds1, "standard_name")
+    logging.info("\n original dataset has the following variables :")
+    logging.info(list(map(name_it, _vars)))
+    logging.info("\n ds1 dataset has the following variables :")
+    logging.info(list(map(name_it, ds1_vars)))
+    logging.info("\n ds2 dataset has the following variables :")
+    logging.info(list(map(name_it, ds2_vars)))
 
 
-def compare_attributes(original_ds, xclim_output_ds, icclim_output_ds):
-    xlog.info(" Original ds has %d attrs", len(original_ds.attrs))
-    xlog.info(" Xclim ds has %d attrs", len(xclim_output_ds.attrs))
-    xlog.info(" Icclim ds has %d attrs", len(icclim_output_ds.attrs))
-    xclim_added_attrs = filter(
-        lambda x: original_ds.attrs.get(x) == None, xclim_output_ds.attrs
-    )
-    xlog.info("\n Xclim added the following attributs")
-    xlog.info(list(xclim_added_attrs))
-    icclim_added_attrs = filter(
-        lambda x: original_ds.attrs.get(x) == None, icclim_output_ds.attrs
-    )
-    xlog.info("\n Icclim added the following attributs")
-    xlog.info(list(icclim_added_attrs))
+def compare_attributes(ds1, ds2):
+    logging.info(" ds1 ds has %d attrs", len(ds1.attrs))
+    logging.info(" ds2 ds has %d attrs", len(ds2.attrs))
+    ds1_added_attrs = filter(lambda x: ds2.attrs.get(x) == None, ds1.attrs)
+    logging.info("\n ds1 added the following attributs")
+    logging.info(list(ds1_added_attrs))
+    ds2_added_attrs = filter(lambda x: ds1.attrs.get(x) == None, ds2.attrs)
+    logging.info("\n ds2 added the following attributs")
+    logging.info(list(ds2_added_attrs))
 
 
-def compare_content(xclim_output_ds: Dataset, icclim_output_ds: Dataset):
-    xlog.info("\n# Content comparison")
+def compare_content(ds1: Dataset, ds2: Dataset):
+    logging.info("\n# Content comparison")
     common_variables = (
-        variable
-        for variable in list(xclim_output_ds.keys())
-        if variable in list(icclim_output_ds.keys())
+        variable for variable in list(ds1.keys()) if variable in list(ds2.keys())
     )
-    xlog.info("Common variables comparison")
+    logging.info("Common variables comparison")
     for variable in common_variables:
-        xlog.info("**%s**", variable)
-        if xclim_output_ds[variable].size == icclim_output_ds[variable].size:
-            xlog.info("same size")
+        logging.info("**%s**", variable)
+        if ds1[variable].size == ds2[variable].size:
+            logging.info("same size")
         else:
-            xlog.info(
-                "size is different, %s for xclim and %s for icclim",
-                xclim_output_ds[variable].size,
-                icclim_output_ds[variable].size,
+            logging.info(
+                "size is different, %s for ds1 and %s for ds2",
+                ds1[variable].size,
+                ds2[variable].size,
             )
-    xlog.info("Common coordinates comparison")
+    logging.info("Common coordinates comparison")
     common_coords = (
-        variable
-        for variable in list(xclim_output_ds.coords)
-        if variable in list(icclim_output_ds.coords)
+        variable for variable in list(ds1.coords) if variable in list(ds2.coords)
     )
     for coord in common_coords:
-        xlog.info("**%s**", coord)
-        if xclim_output_ds[coord].size == icclim_output_ds[coord].size:
-            xlog.info("same size")
+        logging.info("**%s**", coord)
+        if ds1[coord].size == ds2[coord].size:
+            logging.info("same size")
         else:
-            xlog.info(
-                "size is different, %s for xclim and %s for icclim",
-                xclim_output_ds[coord].size,
-                icclim_output_ds[coord].size,
+            logging.info(
+                "size is different, %s for ds1 and %s for ds2",
+                ds1[coord].size,
+                ds2[coord].size,
             )
     # TODO, compare dims and compare unique variables/coords
 
