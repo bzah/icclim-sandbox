@@ -11,6 +11,7 @@ class NetcdfFile:
     path: str
     variable: str
     ds: Dataset = None
+    dim_to_compare: str = "time"
 
 
 def netcdf_processing():
@@ -38,18 +39,39 @@ def netcdf_processing():
         name="climpact", path="wsdi/climpact.nc", variable="wsdi"
     )
 
-    compare_netcdf_files(tx90_xclim_new, tx90_climpact)
+    xclim_per_90 = NetcdfFile(
+        name="xclim_per_90",
+        path="tx90p/percentiles/xclim.nc",
+        variable="tmax",
+        dim_to_compare="dayofyear",
+    )
+    climpact_per_90 = NetcdfFile(
+        name="climpact_per_90",
+        path="tx90p/percentiles/climpact.nc",
+        variable="tx90thresh",
+    )
+    icclim_per_90 = NetcdfFile(
+        name="icclim_per_90", path="tx90p/percentiles/icclim_fixed.nc", variable="Perc",
+    )
+
+    compare_netcdf_files(xclim_per_90, climpact_per_90)
     print("----------------------------")
-    compare_netcdf_files(tx90_xclim, tx90_climpact)
+    compare_netcdf_files(icclim_per_90, climpact_per_90)
     print("----------------------------")
-    compare_netcdf_files(tx90_xclim, tx90_xclim_new)
+    compare_netcdf_files(icclim_per_90, xclim_per_90)
+
+    # compare_netcdf_files(tx90_xclim_new, tx90_climpact)
+    # print("----------------------------")
+    # compare_netcdf_files(tx90_xclim, tx90_climpact)
+    # print("----------------------------")
+    # compare_netcdf_files(tx90_xclim, tx90_xclim_new)
 
 
 def compare_netcdf_files(file1: NetcdfFile, file2: NetcdfFile):
     file1.ds = xr.open_dataset(file1.path, decode_timedelta=False)
     file2.ds = xr.open_dataset(file2.path, decode_timedelta=False)
     print(
-        f"# Compararison of **{file1.name}** and **{file2.name}** through {file1.variable} and {file2.variable} variable"
+        f"# Compararison of **{file1.name}** and **{file2.name}** through {file1.variable} and {file2.variable} variables"
     )
     file1.ds[file1.variable] = file1.ds[file1.variable].astype("float64")
     file2.ds[file2.variable] = file2.ds[file2.variable].astype("float64")
@@ -85,23 +107,33 @@ def compare_by_stats(file1: NetcdfFile, file2: NetcdfFile):
 
 
 def compare_by_mean(file1: NetcdfFile, file2: NetcdfFile):
-    ds1_mean_time = file1.ds[file1.variable].mean(dim="time")
-    ds2_mean_time = file2.ds[file2.variable].mean(dim="time")
+    ds1_mean_time = file1.ds[file1.variable].mean(dim=file1.dim_to_compare)
+    ds2_mean_time = file2.ds[file2.variable].mean(dim=file2.dim_to_compare)
     diff = ds1_mean_time - ds2_mean_time
-    print("\n## Comparison of datasets *averaged* on time")
-    print(f"In average, ds1 and ds2 averages are {float(diff.mean())} different")
-    print(f"The max difference is {float(diff.max()) }")
-    print(f"The min difference is {float(diff.min()) }")
+    print(
+        f"\n## Comparison of datasets *averaged* on {file1.dim_to_compare}/{file2.dim_to_compare}"
+    )
+    print(
+        f"diff = {file1.name}.mean('{file1.dim_to_compare}') - {file2.name}.mean('{file2.dim_to_compare}')"
+    )
+    print(f"In average, _diff.mean()_, the difference is {float(diff.mean())}")
+    print(f"For max difference, _diff.max()_ is {float(diff.max()) }")
+    print(f"For min difference, _diff.min()_ is {float(diff.min()) }")
 
 
 def compare_by_max(file1: NetcdfFile, file2: NetcdfFile):
-    ds1_max_time = file1.ds[file1.variable].max(dim="time")
-    ds2_mean_time = file2.ds[file2.variable].max(dim="time")
+    ds1_max_time = file1.ds[file1.variable].max(dim=file1.dim_to_compare)
+    ds2_mean_time = file2.ds[file2.variable].max(dim=file2.dim_to_compare)
     diff = ds1_max_time - ds2_mean_time
-    print("\n## Comparison of datasets *maximums* on time")
-    print(f"In average, ds1 and ds2 maximums are {float(diff.mean())} different")
-    print(f"The max difference is {float(diff.max()) }")
-    print(f"The min difference is {float(diff.min()) }")
+    print(
+        f"\n## Comparison of datasets *maximums* on {file1.dim_to_compare}/{file2.dim_to_compare}"
+    )
+    print(
+        f"diff = {file1.name}.max('{file1.dim_to_compare}') - {file2.name}.max('{file2.dim_to_compare}')"
+    )
+    print(f"In average, _diff.mean()_, the difference is{float(diff.mean())} different")
+    print(f"For max difference, _diff.max()_ is {float(diff.max()) }")
+    print(f"For min difference, _diff.min()_ is {float(diff.min()) }")
 
 
 # def compare_by_min(ds1, ds2, variable):
@@ -118,6 +150,7 @@ def compare_by_max(file1: NetcdfFile, file2: NetcdfFile):
 
 
 def convert_unit(da: DataArray):
+    # No fun with leap years were attempted here
     coef = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     if da.units == "%":
         out = []
@@ -125,6 +158,8 @@ def convert_unit(da: DataArray):
         for month in groups:
             out.append(month[1] * coef[month[0] - 1] / 100)
         return xr.concat(out, dim="time")
+    if da.units == "degrees_C":
+        return da + 272.15
     return da
 
 
