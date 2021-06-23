@@ -1,42 +1,71 @@
 from xarray.core.dataarray import DataArray
+from dataclasses import dataclass
 
 from xarray.core.dataset import Dataset
 import xarray as xr
 
 
+@dataclass
+class NetcdfFile:
+    name: str
+    path: str
+    variable: str
+    ds: Dataset = None
+
+
 def netcdf_processing():
 
-    icclim = "icclim_FIXED.nc"
-    xclim = "xclim_tx90-base-period-91-00.nc"
-    climpact = "climpact_tx90p_FIXED.nc"
+    tx90_icclim = NetcdfFile(
+        name="icclim", path="tx90p/icclim_FIXED.nc", variable="tx90p"
+    )
+    tx90_xclim = NetcdfFile(
+        name="xclim", path="tx90p/xclim_tx90-base-period-91-00.nc", variable="tx90p"
+    )
+    tx90_climpact = NetcdfFile(
+        name="climpact", path="tx90p/climpact_tx90p_FIXED.nc", variable="tx90p"
+    )
 
-    file1 = xclim
-    file2 = climpact
-    ds1 = xr.open_dataset(file1, decode_timedelta=False)
-    ds2 = xr.open_dataset(file2, decode_timedelta=False)
-    nc_variable = "tx90p"
-    print(f"# Compararison of {file1} and {file2} through {nc_variable} variable")
-    print(f"*In the following, {file1} will be called ds1 and {file2} will be ds2*")
-    ds1[nc_variable] = ds1[nc_variable].astype("float64")
-    ds2[nc_variable] = ds2[nc_variable].astype("float64")
-    ds1[nc_variable] = convert_unit(ds1[nc_variable])
-    ds2[nc_variable] = convert_unit(ds2[nc_variable])
+    wsdi_icclim = NetcdfFile(name="icclim", path="wsdi/icclim.nc", variable="WSDI")
+    wsdi_xclim = NetcdfFile(
+        name="xclim", path="wsdi/xclim_6d.nc", variable="warm_spell_duration_index"
+    )
+    wsdi_climpact = NetcdfFile(
+        name="climpact", path="wsdi/climpact.nc", variable="wsdi"
+    )
 
-    can_compare_content = compare_metadata(ds1, ds2)
-    if not can_compare_content:
-        print("Content are too different and cannot be compared further")
-        return
+    compare_netcdf_files(wsdi_xclim, wsdi_climpact)
+    print("----------------------------")
+    compare_netcdf_files(wsdi_icclim, wsdi_climpact)
+    print("----------------------------")
+    compare_netcdf_files(wsdi_icclim, wsdi_xclim)
 
-    compare_by_mean(ds1, ds2, nc_variable)
-    compare_by_max(ds1, ds2, nc_variable)
-    compare_by_min(ds1, ds2, nc_variable)
+
+def compare_netcdf_files(file1: NetcdfFile, file2: NetcdfFile):
+    file1.ds = xr.open_dataset(file1.path, decode_timedelta=False)
+    file2.ds = xr.open_dataset(file2.path, decode_timedelta=False)
+    print(
+        f"# Compararison of {file1.name} and {file2.name} through {file1.variable} and {file2.variable} variable"
+    )
+    file1.ds[file1.variable] = file1.ds[file1.variable].astype("float64")
+    file2.ds[file2.variable] = file2.ds[file2.variable].astype("float64")
+    file1.ds[file1.variable] = convert_unit(file1.ds[file1.variable])
+    file2.ds[file2.variable] = convert_unit(file2.ds[file2.variable])
+
+    # can_compare_content = compare_metadata(file1.ds, file2.ds)
+    # if not can_compare_content:
+    #     print("Content are too different and cannot be compared further")
+    #     return
+
+    compare_by_mean(file1, file2)
+    compare_by_max(file1, file2)
+    # compare_by_min(file1, file2)
     # compare_content(ds1_out, icc_out)
 
 
-def compare_by_mean(ds1, ds2, nc_variable):
-    ds1_mean_time = ds1[nc_variable].mean(dim="time")
-    ds2_mean_time = ds2[nc_variable].mean(dim="time")
-    diff = (ds1_mean_time - ds2_mean_time) / ds1_mean_time * 100
+def compare_by_mean(file1: NetcdfFile, file2: NetcdfFile):
+    ds1_mean_time = file1.ds[file1.variable].mean(dim="time")
+    ds2_mean_time = file2.ds[file2.variable].mean(dim="time")
+    diff = ds1_mean_time - ds2_mean_time
     print("\n## Comparison of datasets *averaged* on time")
     print(
         f"In average, ds1 and ds2 averages are {float(diff.mean())} % of ds1 different"
@@ -45,10 +74,10 @@ def compare_by_mean(ds1, ds2, nc_variable):
     print(f"The min difference is {float(diff.min()) } % of ds1")
 
 
-def compare_by_max(ds1, ds2, nc_variable):
-    ds1_max_time = ds1[nc_variable].max(dim="time")
-    ds2_mean_time = ds2[nc_variable].max(dim="time")
-    diff = (ds1_max_time - ds2_mean_time) / ds1_max_time * 100
+def compare_by_max(file1: NetcdfFile, file2: NetcdfFile):
+    ds1_max_time = file1.ds[file1.variable].max(dim="time")
+    ds2_mean_time = file2.ds[file2.variable].max(dim="time")
+    diff = ds1_max_time - ds2_mean_time
     print("\n## Comparison of datasets *maximums* on time")
     print(
         f"In average, ds1 and ds2 maximums are {float(diff.mean())} % of ds1 different"
@@ -57,17 +86,17 @@ def compare_by_max(ds1, ds2, nc_variable):
     print(f"The min difference is {float(diff.min()) } % of ds1")
 
 
-def compare_by_min(ds1, ds2, nc_variable):
-    ds1_min_time = ds1[nc_variable].min(dim="time")
-    ds2_mean_time = ds2[nc_variable].min(dim="time")
-    diff = (ds1_min_time - ds2_mean_time) / ds1_min_time * 100
-    print("\n## Comparison of datasets *minimum* on time")
-    print("**Minimum is irrelevant if the studied variable units minimum is zero**")
-    print(
-        f"In average, ds1 and ds2 minimums are {float(diff.mean())} % of ds1 different"
-    )
-    print(f"The max difference is {float(diff.max()) } % of ds1")
-    print(f"The min difference is {float(diff.min()) } % of ds1")
+# def compare_by_min(ds1, ds2, variable):
+#     ds1_min_time = ds1[nc_variable].min(dim="time")
+#     ds2_mean_time = ds2[nc_variable].min(dim="time")
+#     diff = (ds1_min_time - ds2_mean_time)
+#     print("\n## Comparison of datasets *minimum* on time")
+#     print("**Minimum is irrelevant if the studied variable units minimum is zero**")
+#     print(
+#         f"In average, ds1 and ds2 minimums are {float(diff.mean())} % of ds1 different"
+#     )
+#     print(f"The max difference is {float(diff.max()) } % of ds1")
+#     print(f"The min difference is {float(diff.min()) } % of ds1")
 
 
 def convert_unit(da: DataArray):
@@ -102,8 +131,8 @@ def compare_variables(ds1, ds2):
 
 
 def compare_attributes(ds1, ds2):
-    print(" ds1 ds has %d attrs", len(ds1.attrs))
-    print(" ds2 ds has %d attrs", len(ds2.attrs))
+    print(f" ds1 ds has {len(ds1.attrs)} attrs")
+    print(f" ds2 ds has {len(ds2.attrs)} attrs")
     ds1_added_attrs = filter(lambda x: ds2.attrs.get(x) == None, ds1.attrs)
     print("\n ds1 added the following attributs")
     print(list(ds1_added_attrs))
