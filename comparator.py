@@ -1,3 +1,4 @@
+from typing import Callable, List
 from xarray.core.dataarray import DataArray
 from dataclasses import dataclass
 
@@ -16,6 +17,7 @@ class NetcdfFile:
 
 def netcdf_processing():
 
+    # TODO extract NetcdfFile.s configs to yaml
     tx90_icclim = NetcdfFile(
         name="icclim", path="tx90p/icclim_FIXED.nc", variable="tx90p"
     )
@@ -54,105 +56,81 @@ def netcdf_processing():
         name="icclim_per_90", path="tx90p/percentiles/icclim_fixed.nc", variable="Perc",
     )
 
-    compare_netcdf_files(xclim_per_90, climpact_per_90)
-    print("----------------------------")
-    compare_netcdf_files(icclim_per_90, climpact_per_90)
-    print("----------------------------")
-    compare_netcdf_files(icclim_per_90, xclim_per_90)
-
-    # compare_netcdf_files(tx90_xclim_new, tx90_climpact)
-    # print("----------------------------")
-    # compare_netcdf_files(tx90_xclim, tx90_climpact)
-    # print("----------------------------")
-    # compare_netcdf_files(tx90_xclim, tx90_xclim_new)
+    # compare_netcdf_files([icclim_per_90, xclim_per_90, climpact_per_90])
+    compare_netcdf_files([tx90_icclim, tx90_xclim_new, tx90_climpact])
 
 
-def compare_netcdf_files(file1: NetcdfFile, file2: NetcdfFile):
-    file1.ds = xr.open_dataset(file1.path, decode_timedelta=False)
-    file2.ds = xr.open_dataset(file2.path, decode_timedelta=False)
-    print(
-        f"# Compararison of **{file1.name}** and **{file2.name}** through {file1.variable} and {file2.variable} variables"
-    )
-    file1.ds[file1.variable] = file1.ds[file1.variable].astype("float64")
-    file2.ds[file2.variable] = file2.ds[file2.variable].astype("float64")
-    file1.ds[file1.variable] = convert_unit(file1.ds[file1.variable])
-    file2.ds[file2.variable] = convert_unit(file2.ds[file2.variable])
+def compare_netcdf_files(files: List[NetcdfFile]):
+    for file in files:
+        file.ds = xr.open_dataset(file.path, decode_timedelta=False)
+        print(f"{file.name}.{file.variable}")
+        file.ds[file.variable] = file.ds[file.variable].astype("float64")
+        file.ds[file.variable] = convert_unit(file.ds[file.variable])
 
-    # can_compare_content = compare_metadata(file1.ds, file2.ds)
+    # can_compare_content = compare_metadata(file.ds, file2.ds)
     # if not can_compare_content:
     #     print("Content are too different and cannot be compared further")
     #     return
 
-    compare_by_stats(file1, file2)
-    compare_by_mean(file1, file2)
-    compare_by_max(file1, file2)
-    # compare_by_min(file1, file2)
+    compare_by_stats(files)
+    compare_by_agregator(
+        files,
+        "mean",
+        lambda netcdf_file: netcdf_file.ds[netcdf_file.variable].mean(
+            dim=netcdf_file.dim_to_compare
+        ),
+    )
+    compare_by_agregator(
+        files,
+        "max",
+        lambda netcdf_file: netcdf_file.ds[netcdf_file.variable].max(
+            dim=netcdf_file.dim_to_compare
+        ),
+    )
     # compare_content(ds1_out, icc_out)
 
 
-def compare_by_stats(file1: NetcdfFile, file2: NetcdfFile):
-    file1_mean = file1.ds[file1.variable].mean()
-    file2_mean = file2.ds[file2.variable].mean()
-    file1_max = file1.ds[file1.variable].max()
-    file2_max = file2.ds[file2.variable].max()
-    file1_min = file1.ds[file1.variable].min()
-    file2_min = file2.ds[file2.variable].min()
+def compare_by_stats(files: List[NetcdfFile]):
     print("\n## Comparison of datasets main stats")
-    print(f"Mean of {file1.name}: {float(file1_mean) }")
-    print(f"Mean of {file2.name}: {float(file2_mean) }")
-    print(f"Max of {file1.name}: {float(file1_max) }")
-    print(f"Max of {file2.name}: {float(file2_max) }")
-    print(f"Min of {file1.name}: {float(file1_min) }")
-    print(f"Min of {file2.name}: {float(file2_min) }")
+    for file in files:
+        file_mean = file.ds[file.variable].mean()
+        file_max = file.ds[file.variable].max()
+        file_min = file.ds[file.variable].min()
+        print(f"Mean of {file.name}: {float(file_mean) }")
+        print(f"Max of {file.name}: {float(file_max) }")
+        print(f"Min of {file.name}: {float(file_min) }")
+        print(f"---")
 
 
-def compare_by_mean(file1: NetcdfFile, file2: NetcdfFile):
-    ds1_mean_time = file1.ds[file1.variable].mean(dim=file1.dim_to_compare)
-    ds2_mean_time = file2.ds[file2.variable].mean(dim=file2.dim_to_compare)
-    diff = ds1_mean_time - ds2_mean_time
-    print(
-        f"\n## Comparison of datasets *averaged* on {file1.dim_to_compare}/{file2.dim_to_compare}"
-    )
-    print(
-        f"diff = {file1.name}.mean('{file1.dim_to_compare}') - {file2.name}.mean('{file2.dim_to_compare}')"
-    )
-    print(f"In average, _diff.mean()_, the difference is {float(diff.mean())}")
-    print(f"For max difference, _diff.max()_ is {float(diff.max()) }")
-    print(f"For min difference, _diff.min()_ is {float(diff.min()) }")
-
-
-def compare_by_max(file1: NetcdfFile, file2: NetcdfFile):
-    ds1_max_time = file1.ds[file1.variable].max(dim=file1.dim_to_compare)
-    ds2_mean_time = file2.ds[file2.variable].max(dim=file2.dim_to_compare)
-    diff = ds1_max_time - ds2_mean_time
-    print(
-        f"\n## Comparison of datasets *maximums* on {file1.dim_to_compare}/{file2.dim_to_compare}"
-    )
-    print(
-        f"diff = {file1.name}.max('{file1.dim_to_compare}') - {file2.name}.max('{file2.dim_to_compare}')"
-    )
-    print(f"In average, _diff.mean()_, the difference is{float(diff.mean())} different")
-    print(f"For max difference, _diff.max()_ is {float(diff.max()) }")
-    print(f"For min difference, _diff.min()_ is {float(diff.min()) }")
-
-
-# def compare_by_min(ds1, ds2, variable):
-#     ds1_min_time = ds1[nc_variable].min(dim="time")
-#     ds2_mean_time = ds2[nc_variable].min(dim="time")
-#     diff = (ds1_min_time - ds2_mean_time)
-#     print("\n## Comparison of datasets *minimum* on time")
-#     print("**Minimum is irrelevant if the studied variable units minimum is zero**")
-#     print(
-#         f"In average, ds1 and ds2 minimums are {float(diff.mean())} different"
-#     )
-#     print(f"The max difference is {float(diff.max()) }")
-#     print(f"The min difference is {float(diff.min()) }")
+def compare_by_agregator(
+    files: List[NetcdfFile], method_name: str, agregator: Callable
+):
+    print(f"\n## Comparison of datasets by {method_name}")
+    files_done = []
+    for file1 in files:
+        file1_agregation = agregator(file1)
+        files_done.append(file1)
+        for file2 in files:
+            if file2 in files_done:
+                continue
+            file2_aggregation = agregator(file2)
+            diff = file1_agregation - file2_aggregation
+            print(
+                f"### Comparison of datasets *{method_name}* on {file1.name}.{file1.dim_to_compare} and {file2.name}.{file2.dim_to_compare}\n"
+            )
+            print(
+                f"diff = {file1.name}.{method_name}('{file1.dim_to_compare}') - {file2.name}.{method_name}('{file2.dim_to_compare}')\n->"
+            )
+            print(f"diff.mean() = {float(diff.mean())}")
+            print(f"diff.max() = {float(diff.max()) }")
+            print(f"diff.min() = {float(diff.min()) }")
+            print("---")
 
 
 def convert_unit(da: DataArray):
-    # No fun with leap years were attempted here
-    coef = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    # TODO: handle leap years ?
     if da.units == "%":
+        coef = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
         out = []
         groups = da.groupby(da.time.dt.month)
         for month in groups:
