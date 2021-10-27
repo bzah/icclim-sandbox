@@ -1,2 +1,9 @@
 *.nc
 .vscode
+
+
+.idea
+
+dask-worker-space/
+
+*.png

@@ -61,17 +61,19 @@ def netcdf_processing():
 
 
 def compare_netcdf_files(files: List[NetcdfFile]):
+    # fig, ax = plt.subplots(1, 1, figsize=(20, 10))
     for file in files:
+        studied_var = file.ds[file.variable]
         file.ds = xr.open_dataset(file.path, decode_timedelta=False)
         print(f"{file.name}.{file.variable}")
-        file.ds[file.variable] = file.ds[file.variable].astype("float64")
-        file.ds[file.variable] = convert_unit(file.ds[file.variable])
+        studied_var = studied_var.astype("float64")
+        studied_var = convert_unit(studied_var)
+        # ax.plot(studied_var.time, studied_var, linewidth=2,
+        #         label=file.name + "_"+file.variable)
 
-    # can_compare_content = compare_metadata(file.ds, file2.ds)
-    # if not can_compare_content:
-    #     print("Content are too different and cannot be compared further")
-    #     return
-
+    # plt.legend(prop={'size': 10})
+    # plt.title(files[0].variable)
+    # plt.savefig(f'output/comparison_on{files[0].variable}.png')
     compare_by_stats(files)
     compare_by_agregator(
         files,
@@ -87,7 +89,6 @@ def compare_netcdf_files(files: List[NetcdfFile]):
             dim=netcdf_file.dim_to_compare
         ),
     )
-    # compare_content(ds1_out, icc_out)
 
 
 def compare_by_stats(files: List[NetcdfFile]):
