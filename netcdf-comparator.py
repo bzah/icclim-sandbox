@@ -1,3 +1,11 @@
+"""
+/!\ WIP v
+Compare the content of two netcdf files.
+This was a first attempt to compare climpact, icclim and xclim.
+
+Output is printed in stdout.
+"""
+
 from typing import Callable, List
 from xarray.core.dataarray import DataArray
 from dataclasses import dataclass

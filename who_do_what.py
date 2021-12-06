@@ -1,7 +1,13 @@
+"""
+Script to compare indices provided by xclim vs the ones of clix-meta.
+The output is printed in stdout.
+"""
 import xclim.indicators.seaIce
 import xclim.indicators.atmos
 import xclim.indicators.land
 
+
+# todo read that from yml directly
 clix_indices = [("fd", "number_of_days_with_air_temperature_below_threshold"),
                 ("tnlt2",
                  "number_of_days_with_air_temperature_below_threshold"),
@@ -233,7 +239,7 @@ def main():
     xclim_indices += get_xclim_index_name(xclim.indicators.seaIce)
     xclim_indices += get_xclim_index_name(xclim.indicators.atmos)
     xclim_indices += get_xclim_index_name(xclim.indicators.land)
-    # print(f"XCLIM indices: {xclim_indices}")
+    # todo Add read of xclim cf.yml file
 
     in_xclim_not_in_clix = []
     in_clix_not_in_xclim = []
@@ -251,12 +257,6 @@ def main():
                 in_xclim_not_in_clix.append(xc)
             else:
                 in_both.append((xc, "by short name"))
-
-        # if xc.upper() not in list(
-        #         map(lambda clix: clix[1].upper, clix_indices)):
-        #     in_xclim_not_in_clix.append(xc)
-        # else:
-        #     in_both.append(xc)
     for clix in clix_indices:
         if clix[1] != "no_standard_name":
             if clix[1].upper() not in list(
@@ -266,8 +266,6 @@ def main():
             if clix[0].upper() not in list(
                     map(lambda ind: ind[0].upper(), xclim_indices)):
                 in_clix_not_in_xclim.append(clix)
-        # if clix[1].upper() not in list(map(str.upper, xclim_indices)):
-        #     in_clix_not_in_xclim.append(clix)
 
     print(f"in_xclim_not_in_clix indices: {in_xclim_not_in_clix}")
     print(f"in_clix_not_in_xclim indices: {in_clix_not_in_xclim}")

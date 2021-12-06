@@ -3,7 +3,12 @@
 It purpose is to validate that the results of Climdex/Climpact, Icclim and Xclim.
 
 A few scripts are provided:
-- A script for direct necdf comparison (work in progress)
-- A script to compute à la volé icclim indices and compare to climpact netcdf result. (work in progress)
-    Ideally, this script should call climpact but calling R code from python is currently not working.
-- 
+- `netcdf-comparator.py` (WIP) compares the content of netcdf files (will likely be deleted).
+- `compare-v5-v4-climp.py` uses matplotlib to compare the result of icclimv5 icclimv4 and climpact. 
+All indices should be computed before starting this script.
+- `icclim-v5-sandbox.py` runs icclim index individually, meant to support icclim development.
+- `produce_all_indices_v5.py` runs all icclim-v5 49 indices. Can be used before compare-v5-v4-climp.py to
+build all the indices.
+- `produce_all_indices_v4.py` same but for icclim-v4 (will be deleted once v5 is release).
+This script cannot be run as is, use `produce_all_indices_v5.py` instead.
+- `who_do_what.py` compares xclim indicators and clix-meta indices.
