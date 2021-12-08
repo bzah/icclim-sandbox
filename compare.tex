@@ -29,7 +29,7 @@
 \part*{Preamble}
     This document aims to compare the output of 3 softwares, icclim v4, icclim v5 and climpact, which 
     compute climate indices.
-    icclim v5 is a complete rewrite of the python library icclim v4 using Xclim and Xarray.
+    icclim v5 is a complete rewrite of the python library icclim v4 using Xclim and Xarray. It is totally legitimate to compare the two as different software because they only share their API but nothing in their internal mecanismes.
     climpact is the standard R library to compute climate indices, it is based on climdex.s
 
     The 49 indices compared here are all part of the ECA\&D specification[1].
@@ -127,20 +127,19 @@
 \section{Filtered sums}
     [HD17, GD4] are the two indices of this category.
 
-    Gd4 gives a rigourously similar result between the three software.
-    However H17 shows a great difference between climpact and the two others.
+    Gd4 and Hd17 give a very similar result with the three software.
+    For HD17 it is important to take the newer definition of this index from ECA&D as the filtering was missing in the previuos document.
 
 \subsection{HD17, Heating degree days}
     This index computes the sum of heating necessary to heat a building up to 17ºC based on the mean temperature.
     There are at least two definitions for HD17 both sourced to ECA\&D.
     In one of those definition[5], a filter is applied to exclude all values above 17ºC. In the older definition[6] this filter was missing.
-    It has been discussed[7] on Xclim that this filter is indeed necessary.
+    It has been discussed[7] on Xclim that this filtering is indeed necessary.
 
-    \begin{figure}[!hbt]
-        \centering
-        \includegraphics[width=\linewidth]{HD17.png}
-        \caption{Heating degree days}
-        \label{figure/hd17}
-    \end{figure}
+    Climpact names this index "hddheatN" where N is by default 18ºC but has been modified to 17ºC for this test.
+
+\section{Filtered sums}
+
+
 
 \end{document}
