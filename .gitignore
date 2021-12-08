@@ -7,3 +7,11 @@
 dask-worker-space/
 
 *.png
+
+*.fls
+*.log
+*.aux
+*.fdb_latexmk
+*.out
+*.gz
+*_temp.tex

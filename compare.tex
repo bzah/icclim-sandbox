@@ -1,0 +1,146 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{listings}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\graphicspath{{./comparison/ANN/}}
+\lstset{ % General setup for the package
+    language=python,
+    basicstyle=\small\sffamily,
+    numbers=left,
+    numberstyle=\tiny,
+    frame=tb,
+    tabsize=2,
+    columns=fixed,
+    showstringspaces=false,
+    showtabs=false,
+    keepspaces,
+    commentstyle=\color{green},
+    keywordstyle=\color{blue}
+}
+\title{Climate indices software comparison}
+\author{Abel Aoun}
+\begin{document}
+\maketitle
+\part*{Preamble}
+    This document aims to compare the output of 3 softwares, icclim v4, icclim v5 and climpact, which 
+    compute climate indices.
+    icclim v5 is a complete rewrite of the python library icclim v4 using Xclim and Xarray.
+    climpact is the standard R library to compute climate indices, it is based on climdex.s
+
+    The 49 indices compared here are all part of the ECA\&D specification[1].
+    This is a subset of the capabilities of climpact or Xclim which are both able to compute many 
+    more indices.
+    These 49 are the ones that icclim v4 was originally designed to compute.
+    In this document only the indices where some difference has been detected will be presented.
+    To see the full comparison, see the companion zip.
+\section{Dataset}
+    The dataset used for this comparison is a modified version of climpact sample netcdf file [2].
+    The choice was made in favor of this dataset because it is large enough to produce meaningful data,
+    small enough to re-compute indices quickly, it is easily accessible because climpact already 
+    carry a copy of it within its sources and it bears three variables: tmax, tmin and pr which 
+    makes it a good single source of data for our tests.
+
+    This dataset was modified to include a `tas` variable to ensure the indices depending on it could
+    run. In that case tas has been set to the average of tmax and tmin.
+    This step can be avoided by forcing the software to use tmax for example.
+    To produce this `tas' data with Xarray:
+    \begin{lstlisting}
+    import xarray as xr
+
+    ds = xr.open_dataset("climpact.sampledata.gridded.1991-2010.nc")
+    ds["tas"] = (ds.tmax + ds.tmin) /2
+    ds["tas"].attrs["units"] = "K"
+    ds.to_netcdf("climpact_full.nc",
+                    encoding={"time":{'_FillValue': None},
+                            "lon":{'_FillValue': None},
+                            "lat":{'_FillValue': None}},
+                    format="NETCDF4_CLASSIC")
+    \end{lstlisting}
+
+\section{Comparison method}
+    All indices are computed on the annual frequency thus for our 20 years long dataset, we have 20 values for each pixel.
+    The indices based on bootstrapped percentiles have a in base of 10 years (1991-01-01 to 2000-12-31) and the whole period of 20 years is studied (1991-01-01 to 2010-12-31).
+    All indices are compared with two methods: 
+    \begin{enumerate}
+        \item The climate index is averaged over all spatial points. 
+        It gives a good overview of the results but it tends to smooth them. In the figures below, it is always the one on left.
+        \item An arbitrary pixel is studied, this may highlight some irregularities which the mean could have hidden. The pixel of choice is the one where the maximun of the index is found in icclim v5. This should avoid getting a pixel with unintersting data.
+    \end{enumerate}
+    Additionally, the percentiles-based indices are presented above their in base percentiles. However, the percentiles displayed are not bootstrapped, as none of the software is able to returns theses bootstrapped percentile yet.
+    The scripts used to build this comparison can be found in the icclim-sandbox repository [4].
+    The figures are produced with `compare-v5-v4-climp.py` script.
+
+\subsection{Index naming}
+    In this document indices are named by their "short name" which comes from 
+    ECA\&D [1].
+    In the wild, various names are used for the same indices, the clix-meta [3] initiative has to be noted for their effort in trying to standardize climate indices.
+
+    Moreover, some indices may bear the same name but use different definition depending on the source. This is especially true for two precipitations indices family Rxxp and RxxpTot.
+    More details about these differences are describe in their own chapter.
+\subsection{Accuracy of consecutive days}
+    As of today (dec 2021), icclim v4 and v5 do not take into account the spells which elapse over two sampled periods. In the context of this comparison, it means that spells starting in the end of a given year and finishing in the next year are not properly taken into account in the relevant indices.
+    This is something that climpact is able to do.
+
+    For icclim v5 it is due to technical issues currently discussed on Xclim: https://github.com/Ouranosinc/xclim/issues/916
+\subsection{Snow indices workaround}
+    The precipitation variable in the studied dataset account for liquid precipitations as denoted by its units: "kg m-2 d-1".
+    Xclim provides a sophisticated units handling system which forbids computing indices on wrong data. For the sake of simplicity here, to compute snow indices on icclim v5 the unit has been momentarily transformed to "cm" using the precip variable.
+    icclim v4 does not check the units and assumes "cm".
+    Climpact does not compute these indices.
+\section{Notes}
+    The figures presented in this document will be available through a zip file and be distributed beside this document.
+    The indices presented in this document are only a mean to compare the software and should not be used as as is to study the evolution of temperatures or precipitation in the sampled region.
+
+
+
+\part{Simple indices}
+    There is no formal definition of a “simple” index. In here, they are indices with one reducer (mean, sum, max, min), computed on a single variable, with eventually a filtering threshold. We don’t expect to see differences between the 3 software on these indices.\\
+    Simple temperature indices are [SU, FD, TG, TX, TN, TNn, TNx, TXx, TXn, TR, ID].\\
+    Simple precipitation indices (including snow indices) are [PRCPTOT, RR1, SDII, R10mm, R20mm, RX1day, SD, SD1, SD5cm, SD50cm].
+
+    However, a few indices are missing from climpact and were compared only on icclim v4 and v5. They are [TG, TX, TN] and [RR1, SD, SD1, SD5cm, SD50cm].
+
+    From all these simple indices only FD (frost days, Tn < 0ºC) shows some difference between software.
+
+\section{FD, frost days TN<0ºC}
+
+    \begin{figure}[!hbt]
+        \centering
+        \includegraphics[width=\linewidth]{FD.png}
+        \caption{Frost days}
+        \label{figure/fd}
+    \end{figure}
+    
+    The figure \ref{figure/fd} shows that icclim v4 and v5 gives exactly the same values, but climpact, on some cases overestimate the index.
+    The reason why has not been established.
+    
+\part{Middely complex indices}
+    These "Middely complex" indices rely on three steps algorithms
+    to be computed.
+    It would not be surprising to see small differences between software.
+
+\section{Filtered sums}
+    [HD17, GD4] are the two indices of this category.
+
+    Gd4 gives a rigourously similar result between the three software.
+    However H17 shows a great difference between climpact and the two others.
+
+\subsection{HD17, Heating degree days}
+    This index computes the sum of heating necessary to heat a building up to 17ºC based on the mean temperature.
+    There are at least two definitions for HD17 both sourced to ECA\&D.
+    In one of those definition[5], a filter is applied to exclude all values above 17ºC. In the older definition[6] this filter was missing.
+    It has been discussed[7] on Xclim that this filter is indeed necessary.
+
+    \begin{figure}[!hbt]
+        \centering
+        \includegraphics[width=\linewidth]{HD17.png}
+        \caption{Heating degree days}
+        \label{figure/hd17}
+    \end{figure}
+
+\end{document}

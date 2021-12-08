@@ -43,6 +43,75 @@ class ComparableIndex:
         self.pixel = pixel
 
 
+def run():
+    # for ind in [EcadIndex.FD]:
+    for ind in EcadIndex:
+        v4 = None
+        v4_per = None
+        climp = None
+        climp_per = None
+        print(ind.name)
+        v5 = build_comparable(
+            ind, f"{V5_PATH}{ind.name}_{FREQ}_icclimv5_climpSampleData_1991_2010.nc"
+        )
+        pixel = v5.da.max("time").stack(stacked=["lat", "lon"]).argmax()
+        v5.pixel = v5.da.stack(stacked=["lat", "lon"]).isel(stacked=pixel)
+        if ind not in PrecipsTot:
+            # v4 use another formula for rxxptot
+            v4 = build_comparable(
+                ind,
+                f"{V4_PATH}{ind.index_name}_{FREQ}_icclimv4_climpSampleData_1991_2010.nc",
+                lambda x: ind.index_name,
+                pixel,
+            )
+        if ind not in Precips:
+            # climp use another units or rxxp (mm)
+            if ind.index_name.lower() in climp_map.keys():
+                index = climp_map[ind.index_name.lower()]
+            else:
+                index = ind.index_name.lower()
+            climp = build_comparable(
+                ind, f"{CLIMP_PATH}{index}_{FREQ}*.nc", lambda x: index, pixel
+            )
+        # --- PERCENTILES
+        v5_per = get_v5_per(v5)
+        if v5_per is not None:
+            climp_per = get_climp_per(ind)
+            v4_per = get_v4_per(ind)
+
+        # --- PLOTTING
+        pixel_name = (
+            f"lat:{format(v5.pixel.stacked.values[()][0], '.3f')} "
+            f"lon:{format(v5.pixel.stacked.values[()][1], '.3f')}"
+        )
+        if v5_per is None:
+            fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+            plot_index(
+                axs=axs,
+                climp=climp,
+                graph_a=0,
+                graph_b=1,
+                v4=v4,
+                v5=v5,
+                pixel_name=pixel_name,
+            )
+        else:
+            fig, axs = plt.subplots(2, 2, figsize=(20, 10))
+            plot_index(
+                axs=axs,
+                climp=climp,
+                graph_a=(0, 0),
+                graph_b=(0, 1),
+                v4=v4,
+                v5=v5,
+                pixel_name=pixel_name,
+            )
+            plot_percentiles(axs, climp_per, (1, 0), (1, 1), pixel_name, v5_per, v4_per)
+        fig.suptitle(ind.index_name)
+        fig.savefig(f"comparison/ANN/{ind.index_name}.png")
+        plt.close(fig)
+
+
 def convert_unit(da, var_name: str):
     if var_name.upper() in ["HD17", "TX", "TN", "DTR", "VDTR", "ETR", "GD4"]:
         # hd17 for v4 (unit should be "K days" but is K)
@@ -59,13 +128,16 @@ def convert_unit(da, var_name: str):
     return da
 
 
-def build_comparable(index: EcadIndex, path, trans=lambda x: x):
+def build_comparable(index: EcadIndex, path, trans=lambda x: x, pixel=None):
     try:
         ds = xr.open_dataset(glob.glob(path)[0])
         da = ds[trans(index.index_name)]
         da = convert_unit(da, index.name)
         da_mean = da.mean(dim="lat", keep_attrs=True).mean(dim="lon", keep_attrs=True)
-        da_pixel = da.isel(lat=0).isel(lon=0)
+        if pixel is not None:
+            da_pixel = da.stack(stacked=["lat", "lon"]).isel(stacked=pixel)
+        else:
+            da_pixel = da.isel(lat=0).isel(lon=0)
         return ComparableIndex(ds, da, da_mean, da_pixel)
     except Exception:
         return None
@@ -125,69 +197,6 @@ def get_v5_per(v5):
         v5_per_pixel = v5_per.isel(lat=0).isel(lon=0)
         return ComparableIndex(None, v5_per, v5_per_mean, v5_per_pixel)
     return None
-
-
-def run():
-    # for ind in [EcadIndex.R95P]:
-    for ind in EcadIndex:
-        v4 = None
-        v4_per = None
-        climp = None
-        climp_per = None
-        print(ind.name)
-        v5 = build_comparable(
-            ind, f"{V5_PATH}{ind.name}_{FREQ}_icclimv5_climpSampleData_1991_2010.nc"
-        )
-        if ind not in PrecipsTot:
-            # v4 use another formula for rxxptot
-            v4 = build_comparable(
-                ind,
-                f"{V4_PATH}{ind.index_name}_{FREQ}_icclimv4_climpSampleData_1991_2010.nc",
-                lambda x: ind.index_name,
-            )
-        if ind not in Precips:
-            # climp use another units or rxxp (mm)
-            if ind.index_name.lower() in climp_map.keys():
-                index = climp_map[ind.index_name.lower()]
-            else:
-                index = ind.index_name.lower()
-            climp = build_comparable(
-                ind, f"{CLIMP_PATH}{index}_{FREQ}*.nc", lambda x: index
-            )
-        # --- PERCENTILES
-        v5_per = get_v5_per(v5)
-        if v5_per is not None:
-            climp_per = get_climp_per(ind)
-            v4_per = get_v4_per(ind)
-
-        # --- PLOTTING
-        pixel_name = f"lat:{format(v5.pixel.lat.values[()], '.3f')} lon:{format(v5.pixel.lon.values[()], '.3f')}"
-        if v5_per is None:
-            fig, axs = plt.subplots(1, 2, figsize=(20, 10))
-            plot_index(
-                axs=axs,
-                climp=climp,
-                graph_a=0,
-                graph_b=1,
-                v4=v4,
-                v5=v5,
-                pixel_name=pixel_name,
-            )
-        else:
-            fig, axs = plt.subplots(2, 2, figsize=(20, 10))
-            plot_index(
-                axs=axs,
-                climp=climp,
-                graph_a=(0, 0),
-                graph_b=(0, 1),
-                v4=v4,
-                v5=v5,
-                pixel_name=pixel_name,
-            )
-            plot_percentiles(axs, climp_per, (1, 0), (1, 1), pixel_name, v5_per, v4_per)
-        plt.suptitle(ind.index_name)
-        plt.savefig(f"comparison/ANN/{ind.index_name}.png")
-        plt.close(fig)
 
 
 def plot_percentiles(
