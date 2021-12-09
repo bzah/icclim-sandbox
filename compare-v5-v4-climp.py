@@ -5,6 +5,9 @@ and climpact.
 Should be used after creating all (or most) of the indices on a simple dataset with the
 three library (only icclim v5 is mandatory).
 A good example is the climpact sample netcdf.
+
+/!\ inner constants CLIMP_PATH, V5_PATH, V4_PATH must be updated before using this script.
+Icclim v5 must be installed to access EcadIndex enum.
 """
 
 import glob
@@ -30,8 +33,13 @@ PrecipsTot = [
 ]
 
 climp_map = {
-    "gd4": "gddgrow4",
+    "gd4":  "gddgrow4",
     "hd17": "hddheat17",
+}
+
+pixel_map = {
+    EcadIndex.CDD: 50,
+    EcadIndex.CWD: 50
 }
 
 
@@ -44,8 +52,8 @@ class ComparableIndex:
 
 
 def run():
-    # for ind in [EcadIndex.FD]:
-    for ind in EcadIndex:
+    # for ind in [EcadIndex.CDD]:
+    for ind in EcadIndex: 
         v4 = None
         v4_per = None
         climp = None
@@ -54,7 +62,9 @@ def run():
         v5 = build_comparable(
             ind, f"{V5_PATH}{ind.name}_{FREQ}_icclimv5_climpSampleData_1991_2010.nc"
         )
-        pixel = v5.da.max("time").stack(stacked=["lat", "lon"]).argmax()
+        pixel = pixel_map.get(ind, None)
+        if pixel is None:
+            pixel = v5.da.max("time").stack(stacked=["lat", "lon"]).argmax()
         v5.pixel = v5.da.stack(stacked=["lat", "lon"]).isel(stacked=pixel)
         if ind not in PrecipsTot:
             # v4 use another formula for rxxptot
@@ -153,9 +163,9 @@ def get_climp_per(ind):
     )
     if climp_per is not None:
         if ind not in Precips and ind not in PrecipsTot:
-            # duplicating 60th value for missing 29Feb
+            # duplicating 59th value for missing 29Feb
             climp_per = xr.concat(
-                [climp_per[0:60], climp_per[60], climp_per[60:]], dim="time"
+                [climp_per[0:58], climp_per[58], climp_per[58:]], dim="time"
             )
             climp_per += 273.15
             climp_per["time"] = np.arange(1, 367)
@@ -176,8 +186,8 @@ def get_v4_per(ind):
     ).get("percentiles", None)
     if v4_per is not None:
         if ind not in Precips and ind not in PrecipsTot:
-            # duplicating 60th value for missing 29Feb
-            v4_per = xr.concat([v4_per[0:60], v4_per[60], v4_per[60:]], dim="dayofyear")
+            # duplicating 59th value for missing 29Feb
+            v4_per = xr.concat([v4_per[0:58], v4_per[58], v4_per[58:]], dim="dayofyear")
             v4_per["dayofyear"] = np.arange(1, 367)
             v4_per_mean = v4_per.mean(dim="lat", keep_attrs=True).mean(
                 dim="lon", keep_attrs=True
@@ -200,13 +210,13 @@ def get_v5_per(v5):
 
 
 def plot_percentiles(
-    axs,
-    climp_per: ComparableIndex,
-    graph_c,
-    graph_d,
-    pixel_name,
-    v5_per: ComparableIndex,
-    v4_per: ComparableIndex,
+        axs,
+        climp_per: ComparableIndex,
+        graph_c,
+        graph_d,
+        pixel_name,
+        v5_per: ComparableIndex,
+        v4_per: ComparableIndex,
 ):
     if v5_per.da.coords.get("dayofyear", None) is not None:
         if climp_per is not None:
@@ -325,13 +335,13 @@ def plot_percentiles(
 
 
 def plot_index(
-    axs,
-    climp: Optional[ComparableIndex],
-    graph_a,
-    graph_b,
-    v4: ComparableIndex,
-    v5: ComparableIndex,
-    pixel_name,
+        axs,
+        climp: Optional[ComparableIndex],
+        graph_a,
+        graph_b,
+        v4: ComparableIndex,
+        v5: ComparableIndex,
+        pixel_name,
 ):
     if v4 is not None:
         axs[graph_a].plot(
