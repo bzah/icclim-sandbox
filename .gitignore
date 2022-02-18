@@ -15,3 +15,6 @@ dask-worker-space/
 *.out
 *.gz
 *_temp.tex
+
+*.zip
+*.pdf
