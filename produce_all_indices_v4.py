@@ -3,7 +3,7 @@ Will not work as is, because import will retrieve icclim v5.
 Easy workaround, copy the script on a v4 of icclim
 
 Beware when it was run (dec 2021), some additional changes were made to icclim v4 to
-fix a few indices.
+fix a few indices. The fixes are in icclim branch named "fix_4.x.x_for_comparative_work"
 """
 
 import datetime
