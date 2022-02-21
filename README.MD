@@ -1,6 +1,6 @@
 # Comparison project between the climate indices computation libraries
 
-It purpose is to validate that the results of Climdex/Climpact, Icclim and Xclim.
+Its purpose is to validate the results of icclim with Climdex/Climpact.
 
 A few scripts are provided:
 - `netcdf-comparator.py` (WIP) compares the content of netcdf files (will likely be deleted).
@@ -12,3 +12,6 @@ build all the indices.
 - `produce_all_indices_v4.py` same but for icclim-v4 (will be deleted once v5 is release).
 This script cannot be run as is, use `produce_all_indices_v5.py` instead.
 - `who_do_what.py` compares xclim indicators and clix-meta indices.
+
+A report is also available on LaTex format with `compare.tex` file.
+To compile this report, you must first run `compare-v5-v4-climp.py` to generate the necessary pictures.
