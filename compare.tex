@@ -113,14 +113,12 @@ ds.to_netcdf("climpact_full.nc",
     Out of all these simple indices only FD (frost days, Tn < 0ºC) shows some difference between software.
 
     \section{FD, frost days TN<0ºC}
-
         \begin{figure}[!hbt]
             \centering
             \includegraphics[width=\linewidth]{FD.png}
             \caption{Frost days}
             \label{figure/fd}
         \end{figure}
-        
         The figure \ref{figure/fd} shows that icclim v4 and v5 gives exactly the same values, but climpact, on some cases, overestimate the index comparatively to icclim.
         The reason why has not been established.
         
@@ -144,55 +142,54 @@ ds.to_netcdf("climpact_full.nc",
 
         Climpact does not compute [CSU, CFD] indices.
 
-    \subsection{CDD, Maximum number of consecutive dry days (RR < 1 mm)}
-        \begin{figure}[!hbt]
-            \centering
-            \includegraphics[width=\linewidth]{CDD.png}
-            \caption{Maximum number of consecutive dry days}
-            \label{figure/cdd}
-        \end{figure}
+        \subsection{CDD, Maximum number of consecutive dry days (RR < 1 mm)}
+            \begin{figure}[!hbt]
+                \centering
+                \includegraphics[width=\linewidth]{CDD.png}
+                \caption{Maximum number of consecutive dry days}
+                \label{figure/cdd}
+            \end{figure}
+            With CDD in \ref{figure/cdd} we see that icclim v4 and v5 are very much alike.
+            climpact trend is somewhat similar but on the mean, the values are often above those of icclim(s).
+            We can also note that, especially on the pixel study, the 3 curves seems to match perfectly.
+            This is even more obvious with \ref{figure/cwd} below.
 
-        With CDD in \ref{figure/cdd} we see that icclim v4 and v5 are very much alike.
-        climpact trend is somewhat similar but on the mean, the values are often above those of icclim(s).
-        We can also note that, especially on the pixel study, the 3 curves seems to match perfectly.
-        This is even more obvious with \ref{figure/cwd} below.
+        \subsection{CWD, Maximum number of consecutive wet days (RR >= 1 mm)}
+            \begin{figure}[!hbt]
+                \centering
+                \includegraphics[width=\linewidth]{CWD.png}
+                \caption{Maximum number of consecutive wet days}
+                \label{figure/cwd}
+            \end{figure}
 
-    \subsection{CWD, Maximum number of consecutive wet days (RR >= 1 mm)}
-        \begin{figure}[!hbt]
-            \centering
-            \includegraphics[width=\linewidth]{CWD.png}
-            \caption{Maximum number of consecutive wet days}
-            \label{figure/cwd}
-        \end{figure}
+        Variation between software found in both CDD and CWD could be due to multiple factors:
+        \begin{enumerate}
+            \item how the software implement "dry" and "wet" days.
+            \item how the window is configured: minimal window size and handling of missing values. In our sample dataset, there is no missing values.
+            \item spells lasting between different years.
+        \end{enumerate}
 
-    Variation between software found in both CDD and CWD could be due to multiple factors:
-    \begin{enumerate}
-    \item how the software implement "dry" and "wet" days.
-    \item how the window is configured: minimal window size and handling of missing values. In our sample dataset, there is no missing values.
-    \item spells lasting between different years.
-    \end{enumerate}
+        For icclimv5/xclim:
+        \begin{enumerate}
+            \item Dry days are days strictly below 1mm and wet days are days superior or equal to 1mm
+            \item The minimum window size is 1 day and missing values are breaking the count. 
+                It's irrelevant here as there is no missing values but, it means that when counting dry days in CDD a missing value is "seen" as a wet day but, when counting wet days in CWD a missing value is "seen" as a dry day.
+            \item Spells are not properly counted when lasting in between resampled periods, here between years.
+        \end{enumerate}
 
-    For icclimv5/xclim:
-    \begin{enumerate}
-        \item Dry days are days strictly below 1mm and wet days are days superior or equal to 1mm
-        \item The minimum window size is 1 day and missing values are breaking the count. 
-              It's irrelevant here as there is no missing values but, it means that when counting dry days in CDD a missing value is "seen" as a wet day but, when counting wet days in CWD a missing value is "seen" as a dry day.
-        \item Spells are not properly counted when lasting in between resampled periods, here between years.
-    \end{enumerate}
-
-    For climpact/climdex.pcic, apart from the spell lasting between years which are properly fully counted, it seems the same rules are applied.
-    The count of events in between years may be sufficient to explain the differences between software curves.
-    If such event happen between year n-1 and n, climpact will count it within spells of year n.
-    In that case, we expect climpact curve for year n-1 to be lower (or equal if spell is not significant) and year n to be higher than icclim respective values.
+        For climpact/climdex.pcic, apart from the spell lasting between years which are properly fully counted, it seems the same rules are applied.
+        The count of events in between years may be sufficient to explain the differences between software curves.
+        If such event happen between year n-1 and n, climpact will count it within spells of year n.
+        In that case, we expect climpact curve for year n-1 to be lower (or equal if spell is not significant) and year n to be higher than icclim respective values.
+        
+        However, when year n has greater spell than the one spanning between years, because CDD and CWD return the greatest of all spells of the year, the spell between years
+        might be hidden by it. The side effect is, if this spell lasting between years had been the greatest of year n-1, it can't be taken into account.
+        This can be verified with our dataset, in \ref{figure/cdd} we clearly see that, on the pixel study, in the year 2003 climpact value is below icclim.
+        At the same time we see an exact match on year 2004.
+        We can simply then verify if the spell lasting at the end of 2003 was "eaten" by 2004 then overshadowed by another greater spell:
     
-    However, when year n has greater spell than the one spanning between years, because CDD and CWD return the greatest of all spells of the year, the spell between years
-    might be hidden by it. The side effect is, if this spell lasting between years had been the greatest of year n-1, it can't be taken into account.
-    This can be verified with our dataset, in \ref{figure/cdd} we clearly see that, on the pixel study, in the year 2003 climpact value is below icclim.
-    At the same time we see an exact match on year 2004.
-    We can simply then verify if the spell lasting at the end of 2003 was "eaten" by 2004 then overshadowed by another greater spell:
-    
-    \begin{minipage}{\linewidth}
-    \begin{lstlisting}
+        \begin{minipage}{\linewidth}
+        \begin{lstlisting}
 import xarray as xr
 
 ds = xr.open_dataset("climpact.sampledata.gridded.1991-2010.nc")
@@ -200,13 +197,13 @@ pixel = ds.precip.sel({"lat": 14, "lon": 114}, method="nearest")
 end_year_spell = pixel[pixel.time.dt.month >= 11].sel(time="2003") < 1
 spell_length = end_year_spell.sum() # sum bools
 assert spell_length == 60
-    \end{lstlisting}
-    \end{minipage}
+        \end{lstlisting}
+        \end{minipage}
 
-    This case open the question on which approach is better for the end analysis.
-    icclim approach is to count two separate spells which, if they were counted as one could have yielded the greatest spell.
-    climpact approach count the spell as one but if it deprives one of the year of a spell which could have been its greatest, even if it was 
-    sliced.
+        This case open the question on which approach is better for the end analysis.
+        icclim approach is to count two separate spells which, if they were counted as one could have yielded the greatest spell.
+        climpact approach count the spell as one but if it deprives one of the year of a spell which could have been its greatest, even if it was 
+        sliced.
     
 
     % TODO ajouter un paragraph sur RX5day vs RX1day --> ptit diff mais ca vaaaaa.
@@ -222,17 +219,15 @@ assert spell_length == 60
         Between icclim v4 and v5, vDTR was the only one showing differences.
 
         \subsection{vDTR, Mean absolute day-to-day difference in DTR}
-        \begin{figure}[!hbt]
-            \centering
-            \includegraphics[width=\linewidth]{vDTR.png}
-            \caption{Mean absolute day-to-day difference in DTR}
-            \label{figure/vdtr}
-        \end{figure}
-
-        
-        In figure \ref{figure/vdtr} we see that most of the time both version gives the same vDTR result.
-        However, in some cases icclim v5 seems to slightly overestimate the value compared to v4. But the difference is below 0.1 °C.
-        % // TODO voir si c'est un pb de precision float/double
+            \begin{figure}[!hbt]
+                \centering
+                \includegraphics[width=\linewidth]{vDTR.png}
+                \caption{Mean absolute day-to-day difference in DTR}
+                \label{figure/vdtr}
+            \end{figure}
+            In figure \ref{figure/vdtr} we see that most of the time both version gives the same vDTR result.
+            However, in some cases icclim v5 seems to slightly overestimate the value compared to v4. But the difference is below 0.1 °C.
+            % // TODO voir si c'est un pb de precision float/double
 
     \section{Percentile based indices}
         [TG10p, TG90p, TN10p, TN90p, TX10p, TX90p, R75p, R75pTOT, R95p, R95pTOT, R99p, R99pTOT] indices are denoted with a "p" meaning they use a percentile threshold to be computed. CSDI and WSDI also need percentiles but, they are described in their own chapter.
@@ -243,7 +238,7 @@ assert spell_length == 60
         There is a side effect of this. On the climate index results, a statistical bias could be visible at the edges of the reference period, distorting the actual trend.
         This is caused by using the same values:
         \begin{enumerate}
-            \item to compute daily percentiles' of the reference period
+            \item to compute daily percentiles' of the reference period.
             \item and to compute the exceedance rates of these percentiles, for the reference period.
         \end{enumerate}
         To correct this bias, a bootstrapping algorithm has been described by Zhang et al. 2005 \cite{quote/zhang_et_al}.
@@ -271,8 +266,7 @@ assert spell_length == 60
 
     \subsection{TX90p, TN90p, TG90p, TX10p, TN10p, TG10p}
         T(X|N|G)90p: Days with T(X|N|G) > 90th percentile of daily maximum|minimum|average temperature.\\
-        T(X|N|G)10p: Days with T(X|N|G) < 10th percentile of daily maximum|minimum|average temperature.
-
+        T(X|N|G)10p: Days with T(X|N|G) < 10th percentile of daily maximum|minimum|average temperature.\\
 
         Results are very similar between all these indices because they rely on very similar algorithms. 
         Tx90p and Tn10p are presented here to summarize the differences.
@@ -389,10 +383,11 @@ assert spell_length == 60
 \part{Conclusion}
     Overall, out of the 49 indices, 14 of them are clearly showing some differences and a few indices could not be compared.
     The most serious issues are:
-    - on CSDI and WSDI the reference period is not bootstrapped on climpact
-    - indices computing spells of consecutive days when the spell overlaps years are not properly counted on icclim
-    - percentiles curves are sometimes diverging with no obvious reason but, this has a limited impact on the climat index
-
+    \begin{enumerate}
+        \item CSDI and WSDI reference period is not bootstrapped on climpact.
+        \item Indices where a spell of consecutive days is computed gives vary greatly between software.
+        \item Percentiles values are diverging with no obvious reason. However, the impact on the final climate index is limited.
+    \end{enumerate}
 
 \begin{thebibliography}{10}
     % Github links
