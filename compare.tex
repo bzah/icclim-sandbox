@@ -141,7 +141,7 @@ ds.to_netcdf("climpact_full.nc",
         For HD17, we use the newer definition of this index from ECA\&D \cite{doc/ecad_new} as the filtering was missing in the previous document.
 
     \section{Consecutive days indices} \label{section/consecutive_days}
-        [CSU, CFD, CWD, CDD, RX5day] indices rely on a growing time window to compute events spanning on several days.
+        [CSU, CFD, CWD, CDD] indices rely on a growing time window to compute events spanning on several days.
 
         icclim v5 and v4 both have a known limitation for spells spanning between periods chopped by the wanted time resampling, here a yearly resampling.
         In this comparison, it means spells lasting between multiple years would be accounted as two separate spells.
@@ -169,39 +169,39 @@ ds.to_netcdf("climpact_full.nc",
                 \label{figure/cwd}
             \end{figure}
 
-        Variation between software found in both CDD and CWD could be due to multiple factors:
-        \begin{enumerate}
-            \item How the software implement "dry" and "wet" days.
-            \item How the window is configured: its minimal window size and how it handles missing values.
-            \item How spells lasting between different years are counted.
-        \end{enumerate}
+            Variation between software found in both CDD and CWD could be due to multiple factors:
+            \begin{enumerate}
+                \item How the software implement "dry" and "wet" days.
+                \item How the window is configured: its minimal window size and how it handles missing values.
+                \item How spells lasting between different years are counted.
+            \end{enumerate}
 
-        We will show that "spells between years" is sufficient to explain the variability.
-        
-        First, in our example dataset, there is no missing values.
-        Then for icclim v5:
-        \begin{enumerate}
-            \item Dry days are days strictly below 1mm and wet days are days superior or equal to 1mm
-            \item The minimum window size is 1 day and missing values are breaking the count. 
-                It's irrelevant here as there is no missing values but, it means that when counting dry days in CDD a missing value is "seen" as a wet day but, when counting wet days in CWD a missing value is "seen" as a dry day.
-            \item Spells are not properly counted when lasting in between resampled periods, here between years.
-        \end{enumerate}
-        For climpact/climdex.pcic, apart from the spell lasting between years which are properly fully counted, the same rules are applied.
-        
-        Thus, we look at how events in-between years are counted and its impacts.
-        If such event happen between year n-1 and n, climpact will count the event whole duration and it will be accounted in spells of year n.
-        In that case, we expect climpact curve for year n-1 to be lower (or equal if spell is not significant) and year n to be higher than icclim respective values.
-        In CDD \ref{figure/cdd}, this is what we see for the pixel study on years 1997 and 1998.
+            We will show that "spells between years" is sufficient to explain the variability.
+            
+            First, in our example dataset, there is no missing values.
+            Then for icclim v5:
+            \begin{enumerate}
+                \item Dry days are days strictly below 1mm and wet days are days superior or equal to 1mm
+                \item The minimum window size is 1 day and missing values are breaking the count. 
+                    It's irrelevant here as there is no missing values but, it means that when counting dry days in CDD a missing value is "seen" as a wet day but, when counting wet days in CWD a missing value is "seen" as a dry day.
+                \item Spells are not properly counted when lasting in between resampled periods, here between years.
+            \end{enumerate}
+            For climpact/climdex.pcic, apart from the spell lasting between years which are properly fully counted, the same rules are applied.
+            
+            Thus, we look at how events in-between years are counted and its impacts.
+            If such event happen between year n-1 and n, climpact will count the event whole duration and it will be accounted in spells of year n.
+            In that case, we expect climpact curve for year n-1 to be lower (or equal if spell is not significant) and year n to be higher than icclim respective values.
+            In CDD \ref{figure/cdd}, this is what we see for the pixel study on years 1997 and 1998.
 
-        However, when year n has at least one greater spell than the one spanning between years, the spell between years might be hidden by this great spell.
-        This is because CDD and CWD return the greatest of all spells of each year.
-        The side effect is, if this spell lasting between years had been the greatest of year n-1, it can't be taken into account.
-        This can be verified with our dataset. In CDD \ref{figure/cdd} we clearly see that, on the pixel study, in the year 2003 climpact value is below icclim.
-        We also see an exact match for year 2004.
-        
-        We can verify if the spell lasting at the end of 2003 was "eaten" by 2004 then overshadowed by another greater spell with python and Xarray:
-        \begin{minipage}{\linewidth}
-        \begin{lstlisting}
+            However, when year n has at least one greater spell than the one spanning between years, the spell between years might be hidden by this great spell.
+            This is because CDD and CWD return the greatest of all spells of each year.
+            The side effect is, if this spell lasting between years had been the greatest of year n-1, it can't be taken into account.
+            This can be verified with our dataset. In CDD \ref{figure/cdd} we clearly see that, on the pixel study, in the year 2003 climpact value is below icclim.
+            We also see an exact match for year 2004.
+            
+            We can verify if the spell lasting at the end of 2003 was "eaten" by 2004 then overshadowed by another greater spell with python and Xarray:
+            \begin{minipage}{\linewidth}
+            \begin{lstlisting}
 import xarray as xr
 
 ds = xr.open_dataset("climpact.sampledata.gridded.1991-2010.nc")
@@ -209,14 +209,57 @@ pixel = ds.precip.sel({"lat": 14, "lon": 114}, method="nearest")
 end_year_spell = pixel[pixel.time.dt.month >= 11].sel(time="2003") < 1
 spell_length = end_year_spell.sum() # sum bools
 assert spell_length == 60
+            \end{lstlisting}
+            \end{minipage}
+
+            This case study open the question on which approach is better for the climate analysis.
+            icclim approach is to count two separate spells which, if they were counted as one could have yielded the greatest spell.
+            climpact approach count the spell as one but, it can deprive one of the year of a spell which could have been its greatest.
+
+    \section{RX5day, The highest 5-day precipitation amount (mm)}
+        \begin{figure}[!hbt]
+            \centering
+            \includegraphics[width=\linewidth]{RX5day.png}
+            \caption{The highest 5-day precipitation amount}
+            \label{figure/rx5day}
+        \end{figure}
+        Rx5day index use a rolling window of 5 days to be computed.
+        There are some small variation between icclim v5 and climpact. Whenever such variation occur we observe that icclim v4 fairly far from 
+        the two other software.
+        Same as for CDD and CWD, the issue is likely due to the in-between years events.
+        For rx5days, the index value for a given day `x` is the sum of the precipitation of the 5 days window ending at day `x`.
+        Thus, if there is a high precipitation event starting at the very end of a year, the event can be obliviated in Rx5days in icclim v4 and v5.
+        When looking at data in between 2007 and 2008, at pixel ~lat:-14, ~lon:138, we see a strong event lasting until the second day January.
+        \begin{minipage}{\linewidth}
+        \begin{lstlisting}
+import xarray as xr
+
+ds = xr.open_dataset("climpact.sampledata.gridded.1991-2010.nc")
+pixel = ds.precip.sel({"lat": -14, "lon": 138}, method="nearest")
+pixel = pixel.sel(time=slice("2007-12-27","2008-01-05")).clip(min=1)
+print(pixel.values)
+# array([ 20.615036,  12.683516,  84.01536 , 133.92    , 147.34656 ,
+#        101.36446 ,  32.676468,   1.      ,  20.615036, 125.47007 ],
+#       dtype=float32)
+overlapping_event = pixel.sel(time=slice("2007-12-30","2008-01-3")).sum()
+print(overlapping_event)
+# array(415.31613, dtype=float32)
         \end{lstlisting}
         \end{minipage}
 
-        This case study open the question on which approach is better for the climate analysis.
-        icclim approach is to count two separate spells which, if they were counted as one could have yielded the greatest spell.
-        climpact approach count the spell as one but, it can deprive one of the year of a spell which could have been its greatest.
-
-    % TODO ajouter un paragraph sur RX5day vs RX1day --> ptit diff mais ca vaaaaa.
+        On climpact, Rx5days results for year 2008 is 415.316. While this confirm our theory, it's interesting to notice two things:
+        \begin{enumerate}
+            \item This is not the strongest event of this time frame.
+            \item Following rx5day definition, this event should be counted as part of 2008 and not 2007.
+        \end{enumerate}
+        Indeed, if we sum values of the 5 days period 2007-12-29-2008-01-2 (centered on 31dec) we obtain 499.32288, which is greater than climpact value.
+        The reason why climpact does not yield this value is unclear.
+        Moreover, climpact/climdex center the rolling window instead of summing values until the given day. 
+        This window centering does not respect the ETCCDI nor the ECA\&D definition:
+        "Rx5day, Monthly maximum consecutive 5-day precipitation:\\
+        Let RRkj be the precipitation amount for the 5-day interval ending k, period j. Then maximum 5-day values for period j are:\\
+        Rx5dayj = max (RRkj)" \cite{doc/etccdi}.
+        With this definition Rx5day values ~415 and ~499 would have been accounted in 2008.
 
     \section{Compound indices}
         [DTR, ETR, vDTR, CD, CW, WD, WW] are indices using two variables to be computed.
@@ -390,7 +433,7 @@ assert spell_length == 60
         On the pixel study, we can also acknowledge differences on some values between icclim v5 and climpact, out of the reference period.
         This could be due to an event lasting between two years because, as stated in \ref{section/consecutive_days}, icclim v4 and v5 are unable to count these events in-between years for now.
         CSDI being based on daily percentiles, it is perfectly possible to measure a "cold spell" in the summer. 
-    
+
 \part{Conclusion}
     Overall, out of the 49 indices, 14 of them are showing some differences and a few indices could not be compared.
     The most serious issues are:
@@ -399,13 +442,78 @@ assert spell_length == 60
         \item Indices where a spell of consecutive days is computed gives vary greatly between software.
         \item Percentiles values are diverging with no obvious reason. However, the impact on the climate indices is limited.
     \end{enumerate}
+    You may find in annexes a summary all indices and their status in icclim v5.
 
     icclim v4 has been fully replaced by icclim v5.
     Thus, the variations between v5 and climpact being quite small, we would trust any of the two.
     Other factors such as the programming language, the documentation, the API and its capabilities should probably be the deciding factors of choice.
 
 
-\begin{thebibliography}{10}
+\part{Annexes}
+
+    Table \ref{table/indices_status} presented here summarize the status of each index for icclim v5.
+    "ok" means the comparison between v5 and climpact (or with v4 when missing) is good enough.
+    "nok" means they are some known issues with the index.
+    \begin{table}[h]
+    \begin{tabular}{l l c c}
+        Type         &  Index    & icclim V5 Status & Missing From Climpact \\
+        Simple(21)   &  SU       &   ok             &          X            \\
+                     &  FD       &   nok            &                       \\
+                     &  TG       &   ok             &          X            \\
+                     &  TX       &   ok             &          X            \\
+                     &  TN       &   ok             &          X            \\
+                     &  TNn      &   ok             &                       \\
+                     &  TNx      &   ok             &                       \\
+                     &  TXx      &   ok             &                       \\
+                     &  TXn      &   ok             &                       \\
+                     &  TR       &   ok             &                       \\
+                     &  ID       &   ok             &                       \\
+                     &  PRCPTOT  &   ok             &                       \\       
+                     &  RR1      &   ok             &          X            \\
+                     &  SDII     &   ok             &                       \\       
+                     &  R10mm    &   ok             &                       \\       
+                     &  R20mm    &   ok             &                       \\       
+                     &  RX1day   &   ok             &                       \\       
+                     &  SD       &   ok             &          X            \\
+                     &  SD1      &   ok             &          X            \\   
+                     &  SD5cm    &   ok             &          X            \\       
+                     &  SD50cm   &   ok             &          X            \\
+        Moderate(26) &  HD17     &   ok             &                       \\
+                     &  GD4      &   ok             &                       \\
+                     &  CSU      &   ok             &          X            \\
+                     &  CFD      &   ok             &          X            \\
+                     &  CDD      &   nok            &                       \\
+                     &  CWD      &   nok            &                       \\
+                     &  RX5day   &   nok            &                       \\
+                     &  DTR      &   ok             &                       \\
+                     &  ETR      &   ok             &                       \\
+                     &  vDTR     &   nok            &                       \\    
+                     &  CD       &   nok            &                       \\
+                     &  CW       &   nok            &                       \\
+                     &  WD       &   nok            &                       \\
+                     &  WW       &   nok            &                       \\
+                     &  TG10p    &   ok             &          X            \\
+                     &  TG90p    &   ok             &          X            \\
+                     &  TN10p    &   ok             &                       \\
+                     &  TN90p    &   ok             &                       \\
+                     &  TX10p    &   ok             &                       \\
+                     &  TX90p    &   ok             &                       \\
+                     &  R75p     &   ok             &                       \\
+                     &  R75pTOT  &   ok             &                       \\
+                     &  R95p     &   ok             &                       \\
+                     &  R95pTOT  &   ok             &                       \\
+                     &  R99p     &   ok             &                       \\
+                     &  R99pTOT  &   ok             &                       \\
+        Complex(2)   &  WSDI     &   nok            &                       \\
+                     &  CSDI     &   nok            &                       \\
+    \end{tabular}
+    \label{table/indices_status}
+    \caption{Indices Status}
+    \end{table}
+    \pagenumbering{gobble}
+
+\clearpage
+\begin{thebibliography}{1}
     % Github links
     \bibitem{gh/clixmeta}
         clix-meta: https://github.com/clix-meta/clix-meta
@@ -430,7 +538,7 @@ assert spell_length == 60
     \bibitem{doc/ecad_old}
         Former ECA\&D specification: https://www.ecad.eu/documents/atbd.pdf
     \bibitem{doc/ecad_new}
-        Newer ECA\&D specification: https://code.mpimet.mpg.de/projects/cdo/embedded/cdo\_eca.pdf
+        Newer ECA\&D specification: https://knmi-ecad-assets-prd.s3.amazonaws.com/documents/atbd.pdf
     \bibitem{doc/etccdi}
         ETCCDI specification: http://etccdi.pacificclimate.org/list\_27\_indices.shtml
     \bibitem{doc/climdex}
