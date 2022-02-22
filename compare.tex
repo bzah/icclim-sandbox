@@ -27,29 +27,27 @@
 \begin{document}
 \maketitle
 \part*{Preamble}
-    This document aims to compare the output of 2 software, icclim \cite{gh/icclim} and climpact \cite{gh/climpact}. Both are software capable of computing climate indices.
-    Additionally, we compare here two versions of icclim: v5 and v4.
+    This document aims to compare the output of 2 software, icclim \cite{gh/icclim} and climpact \cite{gh/climpact}. Both are climate indices computing software.
+    We also compare here two versions of icclim: v5 and v4.
     icclim v5 is a complete rewrite of the python library icclim v4 using xclim \cite{gh/xclim} and Xarray \cite{gh/xarray}. Both versions share a common API, but their internal mechanisms are completely different.
     Climpact is the standard R library to compute climate indices, it is based on R package climdex.pcic \cite{gh/climdex}.
-    There are others tools to compute climate indices such the original excel scripts climdex or Fclimdex a Fortran package.
-    We choose to limit this comparison to what seems to be the most up to date and maintained R package: Climpact.
+    There are others tools to compute climate indices such the original excel scripts climdex \cite{doc/climdex} or Fclimdex \cite{gh/fclimdex} a Fortran package.
+    We choose to limit this comparison to the most up to date and maintained R package: Climpact.
 
     The 49 indices compared here are all part of the ECA\&D specification \cite{doc/ecad_new}.
-    These 49 are a subset of the capabilities of climpact or xclim which are both able to compute many more indices.
-    icclim v4 was designed to compute only these 49 indices and icclim v5 is for now also limitted to these.
-    Plus, in this document we only present the indices showing some difference between icclim(s) and climpact computation.
-    To see the comparison on every index, see graphs in the companion zip file.
+    These 49 are a subset of the capabilities of climpact or xclim, which are both able to compute many more indices.
+    icclim v4 was designed to compute only these 49 indices and icclim v5 does the same for now.
+    In this document we only present the indices showing some differences between software.
+    To see the full comparison of the 49 indices, see the pictures in the companion zip file.
 
     \section{Dataset}
         The dataset used for this comparison is a modified version of climpact sample netcdf file available on climpact github \cite{gh/climpact}.
-        The choice was made in favor of this dataset because it is large enough to produce meaningful data,
-        small enough to compute indices quickly, it is easily accessible in climpact sources and carries 3 necessary variables: tmax, tmin and precip.
+        We choose this dataset because it is large enough to produce meaningful data, small enough to compute indices quickly, 
+        easily accessible in climpact sources and, it carries 3 necessary variables: tmax, tmin and precip.
 
-        This dataset was modified to include a `tas` variable to ensure the indices depending on it could
-        run. `tas`' is compute as the average of tmax and tmin variables.
-        To produce `tas' with Xarray:
-
-        
+        This dataset was modified to include a fourth variable `tas` variable to ensure the indices depending on it could be computed.
+        `tas`' is compute as the average of tmax and tmin variables.
+        To produce `tas' in python with xarray:
         \begin{minipage}{\linewidth}
         \begin{lstlisting}
 import xarray as xr
@@ -59,31 +57,39 @@ ds["tas"] = (ds.tmax + ds.tmin) / 2
 ds["tas"].attrs["units"] = "K"
 ds.to_netcdf("climpact_full.nc",
               encoding={"time":{'_FillValue': None},
-                      "lon":{'_FillValue': None},
-                      "lat":{'_FillValue': None}},
+                        "lon":{'_FillValue': None},
+                        "lat":{'_FillValue': None}},
               format="NETCDF4_CLASSIC")
         \end{lstlisting}
         \end{minipage}
 
+        This dataset values are over Australian region, this must be noticed for seasonal analysis.
+
     \section{Comparison method}
-        All indices are computed on an annual frequency, thus for our 20 years long dataset, we have 20 values for each pixel.
-        The indices based on percentiles use a reference period of 10 years (1991-01-01 to 2000-12-31) and the whole sample (1991-01-01 to 2010-12-31) is studied in the indices computation.
+        All indices are computed on an annual frequency, thus for our 20 years long dataset, we will have 20 values for each pixel.
+        The indices based on percentiles use a reference period of 10 years, from 1991-01-01 to 2000-12-31, to compute daily percentiles values.
+        Every index is studied for the whole sample, from 1991-01-01 to 2010-12-31.
         All indices are compared through two indicators: 
         \begin{enumerate}
-            \item Averaged values over all spatial points (a.k.a pixels). 
-            It gives a good overview of the results but tend to smooth those. In the figures below, the average is always on the left.
-            \item An arbitrary pixel in the index results. Using a single point may highlight some irregularities which the average could have hidden. 
-            The pixel of choice is usually where the maximum of the index is reached in icclim v5 index results. This filtering by maximum should avoid getting a pixel with uninteresting data. Some indices may use another pixel.
+            \item Averaged values over all spatial points. 
+                This gives a good overview of the results but tend to smooth the curves. In every figure of this document the averaged values is always on the left.
+            \item An arbitrary pixel. 
+                Using a single point may highlight some irregularities which average could have hidden. 
+                The pixel of choice is usually where the maximum of the index is reached in icclim v5 index results. 
+                This filtering by maximum should avoid getting a pixel with uninteresting data. Some indices may use another pixel.
         \end{enumerate}
-        Additionally, in their respective figures, the percentiles-based indices are presented above their percentiles. However, the percentiles displayed are not bootstrapped, they are the percentiles computed on the reference period and use for comparison with the period outside the reference. None of the software is able to return the bootstrapped percentiles yet.
+        Additionally, in their respective figures, the percentiles-based indices are presented above their percentiles. 
+        Note that, the percentiles displayed are not bootstrapped, they are the percentiles computed on the reference period and use for comparison with the period outside the reference. 
+        None of the software is able to return the bootstrapped percentiles yet.\\
+        
         The scripts used to create this comparison can be found in the icclim-sandbox repository \cite{gh/icclim_sandbox}.
         The figures are produced with `compare-v5-v4-climp.py` script of this repository.
-        Also notes that some indices' units are converted within this script to make the comparison possible.
+        Also notes that some indices units are converted within this script to ease comparison.
 
         \subsection{Index naming}
             In this document indices are named by their "short name". These were defined in a former version of ECA\&D document\cite{doc/ecad_old}.
             However, in the literature we can find various names for the same indices, and some index name may refer to multiple definitions. In clix-meta\cite{gh/clixmeta} repository, they try to standardize climate indices. 
-            icclim try to follow these standards.
+            icclim v5 try to follow these standards.
 
         \subsection{Accuracy of consecutive days}
             As of today (December 2021), icclim v4 and v5 do not take into account the spells which elapse over two sampled periods. In the context of this comparison, it means that spells starting in the end of a given year and finishing in the next year are not properly taken into account in the relevant indices.
@@ -93,24 +99,25 @@ ds.to_netcdf("climpact_full.nc",
 
         \subsection{Snow indices workaround}
             The precipitation variable in the studied dataset account for liquid precipitations as denoted by its units: "kg m-2 d-1".
-            xclim provides a sophisticated unit handling system which forbids computing indices on wrong data. For the sake of simplicity here, to compute snow indices on icclim v5 the unit has been momentarily transformed to "cm" using the same precip variable.
+            xclim provides a sophisticated unit handling system which forbids computing indices on wrong data. For the sake of simplicity here, to compute snow indices on icclim v5 the unit has been momentarily transformed to "cm" on `precip`' variable.
             icclim v4 does not check the units and assumes "cm".
-            Climpact does not compute these indices.
+            Climpact does not compute these snow indices.
             
     \section{Notes}
-        The figures presented in this document will be available through a zip file and be distributed beside this document in icclim-sandbox \cite{gh/icclim_sandbox}.
-        The indices results presented in this document are only a mean to compare the software and should not be used as is to study the evolution of temperatures or precipitation in the sampled region.
+        The figures presented in this document will be available through a zip file and be distributed beside this document in icclim-sandbox \cite{gh/icclim_sandbox}.\\
+        The indices results presented in this document are only a mean to compare the software and should not be used as is to study the evolution of temperatures or precipitation in the sampled region.\\
         The source code of icclim v4 has been fixed for some indices and in order to extract percentiles values to make this comparison possible. These fixes have not been published on github because icclim v5 fully replace v4 now.
 
 
 \part{Simple indices}
     There is no formal definition of a “simple” index. Here, they are indices with one reducer (mean, sum, max, min), computed on a single variable, with eventually a filtering threshold. We don't expect to see differences between the 3 software on these indices.\\
     Simple temperature indices are [SU, FD, TG, TX, TN, TNn, TNx, TXx, TXn, TR, ID].\\
-    Simple precipitation indices (including snow indices) are [PRCPTOT, RR1, SDII, R10mm, R20mm, RX1day, SD, SD1, SD5cm, SD50cm].
+    Simple precipitation indices (including snow indices) are [PRCPTOT, RR1, SDII, R10mm, R20mm, RX1day, SD, SD1, SD5cm, SD50cm].\\
 
-    However, a few indices are missing from climpact and were compared only between icclim v4 and v5. They are [TG, TX, TN] and [RR1, SD, SD1, SD5cm, SD50cm].
+    However, a few indices are missing from climpact and were compared only between icclim v4 and v5. 
+    They are [TG, TX, TN] and [RR1, SD, SD1, SD5cm, SD50cm].
 
-    Out of all these simple indices only FD (frost days, Tn < 0ºC) shows some difference between software.
+    Out of all these simple indices only FD (frost days, Tn < 0ºC) shows some differences between software.
 
     \section{FD, frost days TN<0ºC}
         \begin{figure}[!hbt]
@@ -119,25 +126,25 @@ ds.to_netcdf("climpact_full.nc",
             \caption{Frost days}
             \label{figure/fd}
         \end{figure}
-        The figure \ref{figure/fd} shows that icclim v4 and v5 gives exactly the same values, but climpact, on some cases, overestimate the index comparatively to icclim.
+        The figure \ref{figure/fd} shows that icclim v4 and v5 gives the same values, but climpact, on some cases, overestimate the index comparatively to icclim.
         The reason why has not been established.
         
 
 \part{Moderately complex indices}
     These "moderately complex" indices rely on several steps algorithms to be computed.
-    It would not be surprising to see small differences between software.
+    It would not be reasonable to expect small differences between software.
 
     \section{Filtered sums}
         [HD17, GD4] are two indices where a sum is filtered by a given threshold.
 
         Gd4 and Hd17 give a very similar result with the three software.
-        For HD17 it is important to take the newer definition of this index from ECA\&D \cite{doc/ecad_new} as the filtering was missing in the previous document.
+        For HD17, we use the newer definition of this index from ECA\&D \cite{doc/ecad_new} as the filtering was missing in the previous document.
 
     \section{Consecutive days indices} \label{section/consecutive_days}
         [CSU, CFD, CWD, CDD, RX5day] indices rely on a growing time window to compute events spanning on several days.
 
-        icclim v5 and v4 both have a known limitation for spells spanning between periods chopped by the final resampling. 
-        In this comparison, it means spells lasting between multiple years would not be properly accounted.
+        icclim v5 and v4 both have a known limitation for spells spanning between periods chopped by the wanted time resampling, here a yearly resampling.
+        In this comparison, it means spells lasting between multiple years would be accounted as two separate spells.
         Climpact has not such limitation.
 
         Climpact does not compute [CSU, CFD] indices.
@@ -151,7 +158,7 @@ ds.to_netcdf("climpact_full.nc",
             \end{figure}
             With CDD in \ref{figure/cdd} we see that icclim v4 and v5 are very much alike.
             climpact trend is somewhat similar but on the mean, the values are often above those of icclim(s).
-            We can also note that, especially on the pixel study, the 3 curves seems to match perfectly.
+            Regarding the pixel study, when the 3 results match perfectly we can verify there is no spell at the year boundary.
             This is even more obvious with \ref{figure/cwd} below.
 
         \subsection{CWD, Maximum number of consecutive wet days (RR >= 1 mm)}
@@ -164,30 +171,35 @@ ds.to_netcdf("climpact_full.nc",
 
         Variation between software found in both CDD and CWD could be due to multiple factors:
         \begin{enumerate}
-            \item how the software implement "dry" and "wet" days.
-            \item how the window is configured: minimal window size and handling of missing values. In our sample dataset, there is no missing values.
-            \item spells lasting between different years.
+            \item How the software implement "dry" and "wet" days.
+            \item How the window is configured: its minimal window size and how it handles missing values.
+            \item How spells lasting between different years are counted.
         \end{enumerate}
 
-        For icclimv5/xclim:
+        We will show that "spells between years" is sufficient to explain the variability.
+        
+        First, in our example dataset, there is no missing values.
+        Then for icclim v5:
         \begin{enumerate}
             \item Dry days are days strictly below 1mm and wet days are days superior or equal to 1mm
             \item The minimum window size is 1 day and missing values are breaking the count. 
                 It's irrelevant here as there is no missing values but, it means that when counting dry days in CDD a missing value is "seen" as a wet day but, when counting wet days in CWD a missing value is "seen" as a dry day.
             \item Spells are not properly counted when lasting in between resampled periods, here between years.
         \end{enumerate}
-
-        For climpact/climdex.pcic, apart from the spell lasting between years which are properly fully counted, it seems the same rules are applied.
-        The count of events in between years may be sufficient to explain the differences between software curves.
-        If such event happen between year n-1 and n, climpact will count it within spells of year n.
-        In that case, we expect climpact curve for year n-1 to be lower (or equal if spell is not significant) and year n to be higher than icclim respective values.
+        For climpact/climdex.pcic, apart from the spell lasting between years which are properly fully counted, the same rules are applied.
         
-        However, when year n has greater spell than the one spanning between years, because CDD and CWD return the greatest of all spells of the year, the spell between years
-        might be hidden by it. The side effect is, if this spell lasting between years had been the greatest of year n-1, it can't be taken into account.
-        This can be verified with our dataset, in \ref{figure/cdd} we clearly see that, on the pixel study, in the year 2003 climpact value is below icclim.
-        At the same time we see an exact match on year 2004.
-        We can simply then verify if the spell lasting at the end of 2003 was "eaten" by 2004 then overshadowed by another greater spell:
-    
+        Thus, we look at how events in-between years are counted and its impacts.
+        If such event happen between year n-1 and n, climpact will count the event whole duration and it will be accounted in spells of year n.
+        In that case, we expect climpact curve for year n-1 to be lower (or equal if spell is not significant) and year n to be higher than icclim respective values.
+        In CDD \ref{figure/cdd}, this is what we see for the pixel study on years 1997 and 1998.
+
+        However, when year n has at least one greater spell than the one spanning between years, the spell between years might be hidden by this great spell.
+        This is because CDD and CWD return the greatest of all spells of each year.
+        The side effect is, if this spell lasting between years had been the greatest of year n-1, it can't be taken into account.
+        This can be verified with our dataset. In CDD \ref{figure/cdd} we clearly see that, on the pixel study, in the year 2003 climpact value is below icclim.
+        We also see an exact match for year 2004.
+        
+        We can verify if the spell lasting at the end of 2003 was "eaten" by 2004 then overshadowed by another greater spell with python and Xarray:
         \begin{minipage}{\linewidth}
         \begin{lstlisting}
 import xarray as xr
@@ -200,18 +212,16 @@ assert spell_length == 60
         \end{lstlisting}
         \end{minipage}
 
-        This case open the question on which approach is better for the end analysis.
+        This case study open the question on which approach is better for the climate analysis.
         icclim approach is to count two separate spells which, if they were counted as one could have yielded the greatest spell.
-        climpact approach count the spell as one but if it deprives one of the year of a spell which could have been its greatest, even if it was 
-        sliced.
-    
+        climpact approach count the spell as one but, it can deprive one of the year of a spell which could have been its greatest.
 
     % TODO ajouter un paragraph sur RX5day vs RX1day --> ptit diff mais ca vaaaaa.
 
     \section{Compound indices}
         [DTR, ETR, vDTR, CD, CW, WD, WW] are indices using two variables to be computed.
-        [DTR, ETR, vDTR] are based on temperatures.
-        [CD, CW, WD, WW] need both an averaged (tas) temperature and a precipitation variable.
+        [DTR, ETR, vDTR] are based on min and max temperatures.
+        [CD, CW, WD, WW] need both averaged temperatures and a precipitation variable.
         
         icclim v4 fails to compute [CD, CW, WD, WW].
         Climpact only computes DTR and, it behaves similarly on the 3 software. 
@@ -230,17 +240,19 @@ assert spell_length == 60
             % // TODO voir si c'est un pb de precision float/double
 
     \section{Percentile based indices}
-        [TG10p, TG90p, TN10p, TN90p, TX10p, TX90p, R75p, R75pTOT, R95p, R95pTOT, R99p, R99pTOT] indices are denoted with a "p" meaning they use a percentile threshold to be computed. CSDI and WSDI also need percentiles but, they are described in their own chapter.
-        To compute all these indices, we must first compute the percentiles on a reference period, then these percentiles are used as thresholds for the whole studied period.
+        [TG10p, TG90p, TN10p, TN90p, TX10p, TX90p, R75p, R75pTOT, R95p, R95pTOT, R99p, R99pTOT] indices are denoted with a "p" meaning they use a percentile threshold to be computed. 
+        CSDI and WSDI also need percentiles but, they are described in their own chapter: \ref{part/complex_indices}.
+        To compute all these indices, we must first compute the percentiles on a reference period, then these percentiles are used as thresholds for the whole studied period.\\
 
-        Temperatures and precipitation percentiles are however not treated the same way. 
-        For temperatures indices [TG10p, TG90p, TN10p, TN90p, TX10p, TX90p] the percentile used are of each day of the year. It means that, on each pixel, for each day of the year all values are aggregated and sorted to get the wanted percentile. 
-        There is a side effect of this. On the climate index results, a statistical bias could be visible at the edges of the reference period, distorting the actual trend.
+        However, temperature and precipitation indices does not compute the same percentiles.
+        Temperatures indices [TG10p, TG90p, TN10p, TN90p, TX10p, TX90p] needs daily percentile. It means that, for each day of the year all values are aggregated for this day (e.g 2nd of December) and sorted to get the wanted percentile. 
+        There is a side effect of using daily percentiles. On the climate index results, a statistical bias could be visible at the edges of the reference period, distorting the actual trend.
         This is caused by using the same values:
         \begin{enumerate}
-            \item to compute daily percentiles' of the reference period.
-            \item and to compute the exceedance rates of these percentiles, for the reference period.
+            \item to compute daily percentiles on reference period
+            \item to compute the exceedance rates of these percentiles on the reference period
         \end{enumerate}
+        For example on TX90p, we would compare the value 2nd of December 1994 value to the 90th percentile of reference period 2nd December values, including the value from 1994.
         To correct this bias, a bootstrapping algorithm has been described by Zhang et al. 2005 \cite{quote/zhang_et_al}.
         Basically, the algorithm iteratively replace the values of reference period years when computing the percentiles.
         The replacing values are alternatively taken from the other years of the same reference period.
@@ -250,82 +262,81 @@ assert spell_length == 60
 
         For this comparison, the reference period is from "1991-01-01" to "2000-12-31".
         The study period on which indices are computed on "1991-01-01" to "2010-12-31".
-        Thus, the 10 first years are bootstrapped.
+        Thus, the ten first years are bootstrapped.
 
         For precipitations indices [R75p, R75pTOT, R95p, R95pTOT, R99p, R99pTOT] we follow the ECA\&D definition of these indices.
-        Thus, the percentiles are computed on the range of values of the whole reference period and not for each day of the year.
-        Bootstrapping algorithm is not necessary in that case.
+        The percentiles are computed on the range of values of the whole reference period and not on daily values.
+        Bootstrapping algorithm is thus not necessary.
 
+        Notes:
         \begin{enumerate}
             \item For performance reason icclim v4 has an implemented the bootstrap algorithm in C, and climpact uses climdex C++ implementation for the same reason. However, icclim v5 (through xclim) uses a python implementation which provides good performances thanks to numpy and Dask.
-            \item There are some confusion regarding the proper definition of these precipitation indices for both Rxxp and RxxpTOT families. icclim v5 uses the ECA\&D definition which differ from the WMO for example.
+            \item There are some confusion regarding the proper definition of these precipitation indices of both Rxxp and RxxpTOT families. icclim v5 uses the ECA\&D definition which differ from the WMO for example.
             \item The 3 software are able to output the percentiles computed for these indices beside the index results. But none is able to output the bootstrapped percentiles, thus the values displayed below are the thresholds percentiles used only in the comparison with the period "2001-01-01" to "2010-12-31", out of the reference period.
-            \item Day of year percentiles are reconstructed to have 366 values before being drawn in figures. icclim v5 natively provides 366 values but for the two other software we had to duplicate the 28th Feb value (59th day of year) to have 366 values.
+            \item Daily percentiles are reconstructed to have 366 values before being drawn in figures. icclim v5 gives 366 values but for the two other software we had to duplicate the 28th Feb value (59th day of year) to have indeed 366 values.
         \end{enumerate}
 
+        \subsection{TX90p, TN90p, TG90p, TX10p, TN10p, TG10p}
+            T(X|N|G)90p: Days with T(X|N|G) > 90th percentile of daily maximum|minimum|average temperature.\\
+            T(X|N|G)10p: Days with T(X|N|G) < 10th percentile of daily maximum|minimum|average temperature.\\
 
-    \subsection{TX90p, TN90p, TG90p, TX10p, TN10p, TG10p}
-        T(X|N|G)90p: Days with T(X|N|G) > 90th percentile of daily maximum|minimum|average temperature.\\
-        T(X|N|G)10p: Days with T(X|N|G) < 10th percentile of daily maximum|minimum|average temperature.\\
+            Results are very similar between all these indices because they rely on very similar algorithms. 
+            Tx90p and Tn10p are presented here to summarize the differences.
+            Notes that Climpact does not implement TG90p and TG10p.
 
-        Results are very similar between all these indices because they rely on very similar algorithms. 
-        Tx90p and Tn10p are presented here to summarize the differences.
-        Notes that Climpact does not implement TG90p and TG10p.
+            \begin{figure}[!hbt]
+                \centering
+                \includegraphics[width=\linewidth]{TX90p.png}
+                \caption{TX90p, Days with TX > 90th percentile of daily max temperature (warm days) (days)}
+                \label{figure/tx90p}
+            \end{figure}
 
-        \begin{figure}[!hbt]
-            \centering
-            \includegraphics[width=\linewidth]{TX90p.png}
-            \caption{TX90p, Days with TX > 90th percentile of daily max temperature (warm days) (days)}
-            \label{figure/tx90p}
-        \end{figure}
+            \begin{figure}[!hbt]
+                \centering
+                \includegraphics[width=\linewidth]{TX10p.png}
+                \caption{TX10p, Days with TX < 10th percentile of daily max temperature (cold days) (days)}
+                \label{figure/tx10p}
+            \end{figure}
 
-        \begin{figure}[!hbt]
-            \centering
-            \includegraphics[width=\linewidth]{TX10p.png}
-            \caption{TX10p, Days with TX < 10th percentile of daily max temperature (cold days) (days)}
-            \label{figure/tx10p}
-        \end{figure}
+            In \ref{figure/tx90p} we observe that icclim v5 and climpact gives quite similar results on both the bootstrapped reference period and out of the reference period.
+            However, icclim v4 is significantly overestimating the index on the whole sample compare to the two other.
+            When zooming in a single pixel, we see that there are some differences in the index values between v5 and climpact.
+            These small variations seem unrelated to the differences we see in the percentiles.
+            Indeed, climpact seems to overestimate percentiles relatively to icclim v5. Thus, with climpact higher percentiles we would expect lower Tx90p values, Tx90p being the number of day above the daily percentiles.
+            This is not what we observe, thus the dissimilarity in percentiles must be smoothed in the index by another mechanism, which is not yet explained.
+            For TX10p, \ref{figure/tx10p} in the averaged values on the left, we see the that climpact percentiles are this time a bit higher than icclim's.
+            And it's again climpact tx10p values which are slightly above icclim tx10p where we would expect them to be lower, tx10p being the number of day below the daily percentiles.
 
-        In \ref{figure/tx90p} we observe that icclim v5 and climpact gives quite similar results on both the bootstrapped reference period and out of the reference period.
-        However, icclim v4 is significantly overestimating the index on the whole sample compare to the two other.
-        Besides, when zooming in a single pixel, we see that there are some differences in the index values between v5 and climpact.
-        These small variations seem unrelated to the differences we see in the percentiles.
-        Indeed, climpact seems to overestimate percentiles relatively to icclim v5. Thus, with climpact higher percentiles we would expect a lower Tx90p values, Tx90p being the number of day above the daily percentiles.
-        This is not what we observe, thus the dissimilarity in percentiles must be smoothed by another mechanism which is not yet explained.
-        For TX10p, \ref{figure/tx10p} if we look this time at the averaged values on the left, we see the that climpact percentiles are this time a bit higher than icclim's.
-        And it's again climpact tx10p values which are slightly above icclim tx10p where we would expect them to be lower, tx10p being the number of day below the daily percentiles.
-        
+        \subsection{Rxxp family: R75p, R95p, R99p}
+            Rxxp: Days with RR > xxth percentile of daily amounts (moderate to very wet days)(days)
 
-    \subsection{Rxxp family: R75p, R95p, R99p}
-        Rxxp: Days with RR > xxth percentile of daily amounts (moderate to very wet days)(days)
+            icclim v4 and v5 output is a count of days above the given percentile where climpact sums the quantity of precipitation above the percentile. 
+            Climpact actually follows the ETCCDI\cite{doc/etccdi} definition of these indices.
+            There are some effort currently being done to (re)standardize these indices on \cite{gh/clixmeta}.
+            Besides, climpact does not implement R75p.
 
-        icclim v4 and v5 output is a count of days above the given percentile where climpact sums the quantity of precipitation above the percentile. 
-        Climpact actually follows the ETCCDI\cite{doc/etccdi} definition of these indices.
-        There are some effort currently being done to (re)standardize these indices on \cite{gh/clixmeta}.
-        Besides, climpact does not implement R75p.
+            Percentile results for these indices does not have a time dimension, thus in order to display them on a 2D graph, the X axis is arbitrary chosen to be latitude.
+            On the left we average values on longitude and on the right we pick up one arbitrary longitude.
+            Moreover, these indices and their percentiles are computed only on wet days (days when precipitation is above 1 mm).
 
-        Note that, percentiles for these indices does not have a time dimension, thus in order to display them on a 2D graph, the X axis is arbitrary chosen to be latitude.
-        On the left we average values on longitude and on the right we pick up one longitude.
-        Moreover, these indices and their percentiles are computed only on wet days (days when precipitation is above 1 mm).
+            \begin{figure}
+                \centering
+                \includegraphics[width=\linewidth]{R95p.png}
+                \caption{R95p, Days with RR > 95th percentile of daily amounts (very wet days) (days)}
+                \label{figure/r95p}
+            \end{figure}
 
-        \begin{figure}
-            \centering
-            \includegraphics[width=\linewidth]{R95p.png}
-            \caption{R95p, Days with RR > 95th percentile of daily amounts (very wet days) (days)}
-            \label{figure/r95p}
-        \end{figure}
+            As visible in \ref{figure/r95p}, even if both versions of icclim are supposed to follow the same definition, they give very different results.
+            icclim v4 seems to not handle very well the filtering of wet days, which result in a lot of missing values and thus discontinuous curves.
+            On the other hand, climpact and icclim v5 percentiles are very similar.
 
-        As visible in \ref{figure/r95p}, even if both versions of icclim are supposed to follow the same definition, they give very different results.
-        icclim v4 seems to not handle very well the filtering of wet days, which result in a lot of missing values and thus discontinuous curves.
-        On the other hand, climpact and icclim v5 percentiles are very similar.
-
-    \subsection{RxxpTOT family: R75pTOT, R95pTOT, R99pTOT}
+        \subsection{RxxpTOT family: R75pTOT, R95pTOT, R99pTOT}
         RxxpTOT: Precipitation fraction due to wet days (> xxth percentile)(\%)
 
         Similarly to Rxxp family, the definition of the RxxpTot family varies between sources. 
         Here, climpact and icclim v5 uses the same definition but icclim v4 uses a non-standard definition. 
         In icclim v4, the results are the sum of precipitations over the given threshold and are not divided by the sum of daily precipitation amount for the studied period. 
-        Thus, icclim v4 definition of RxxpTot is equivalent to climpact Rxxp (no "Tot") definitions.
+        Thus, icclim v4 definition of RxxpTot should be equivalent to climpact Rxxp definitions.
 
         \begin{figure}
             \centering
@@ -334,16 +345,17 @@ assert spell_length == 60
             \label{figure/r99ptot}
         \end{figure}
 
-        In figure\ref{figure/r99ptot} we see that percentiles between icclim v5 and climpact are in mean quite similar but for the chosen pixel may vary.
+        In figure \ref{figure/r99ptot} we see that percentiles between icclim v5 and climpact are in average quite similar but may vary on pixel.
         However, these variations seemed smoothed by the index computation, because the index results are very much alike.
-        As for icclim v4 percentiles are very different because of the way icclim v4 handles dry days exclusions.  
+        As for icclim v4, percentiles are very different because of the way icclim v4 handles dry days exclusions. 
 
 
 \part{Complex indices}
-    [WSDI, CSDI] indices have their own category here because they rely on both:
+\label{part/complex_indices}
+    [WSDI, CSDI] indices have their own category here because their algorithm rely on both:
     \begin{enumerate}
         \item extreme percentiles
-        \item an aggregation on rolling time window
+        \item an aggregation on growing time window
     \end{enumerate}
     In the previous sections, we have seen that these two algorithmic steps are the one causing the most variability in the indices.
     As expected, out of all indices, these two are the indices showing the greatest differences on the 3 software.
@@ -351,8 +363,7 @@ assert spell_length == 60
     \section{WSDI, Warm-spell duration index (days)}
         WSDI: Let TXij be the daily maximum temperature at day i of period j and let
         TXin90 be the calendar day 90th percentile calculated for a 5-day window centered on each calendar day in the 1961-1990 period.
-        Then counted is the number of days per period where, in intervals of at least 6 consecutive days TXij > TXin90. 
-        From ECA\&D\cite{doc/ecad_new}
+        Then counted is the number of days per period where, in intervals of at least 6 consecutive days TXij > TXin90.
 
         \begin{figure}[!hbt]
             \centering
@@ -366,7 +377,7 @@ assert spell_length == 60
 
         Out of the reference period, from January 2000 to December 2010, climpact and icclim v5 seems to have very similar results.
         However, we clearly see a difference within reference period. It would seem climpact does not bootstrap the percentiles for WSDI.
-        This is related to an issue raised on github on climdex, the R package below climpact \cite{gh/wsdi_issue}.
+        This has been raised in an issue on climdex github, the R package below climpact \cite{gh/wsdi_issue}.
     
         \begin{figure}[!hbt]
             \centering
@@ -378,16 +389,21 @@ assert spell_length == 60
         CSDI displayed in \ref{figure/csdi} shows a very similar behavior as WSDI.
         On the pixel study, we can also acknowledge differences on some values between icclim v5 and climpact, out of the reference period.
         This could be due to an event lasting between two years because, as stated in \ref{section/consecutive_days}, icclim v4 and v5 are unable to count these events in-between years for now.
- 
+        CSDI being based on daily percentiles, it is perfectly possible to measure a "cold spell" in the summer. 
     
 \part{Conclusion}
-    Overall, out of the 49 indices, 14 of them are clearly showing some differences and a few indices could not be compared.
+    Overall, out of the 49 indices, 14 of them are showing some differences and a few indices could not be compared.
     The most serious issues are:
     \begin{enumerate}
         \item CSDI and WSDI reference period is not bootstrapped on climpact.
         \item Indices where a spell of consecutive days is computed gives vary greatly between software.
-        \item Percentiles values are diverging with no obvious reason. However, the impact on the final climate index is limited.
+        \item Percentiles values are diverging with no obvious reason. However, the impact on the climate indices is limited.
     \end{enumerate}
+
+    icclim v4 has been fully replaced by icclim v5.
+    Thus, the variations between v5 and climpact being quite small, we would trust any of the two.
+    Other factors such as the programming language, the documentation, the API and its capabilities should probably be the deciding factors of choice.
+
 
 \begin{thebibliography}{10}
     % Github links
@@ -406,7 +422,9 @@ assert spell_length == 60
     \bibitem{gh/icclim_sandbox}
         icclim-sandbox: https://github.com/bzah/icclim-sandbox
     \bibitem{gh/wsdi_issue}
-        wsdi issue: https://github.com/pacificclimate/climdex.pcic/issues/8
+        WSDI issue: https://github.com/pacificclimate/climdex.pcic/issues/8
+    \bibitem{gh/fclimdex}
+        Fclimdex: https://github.com/scivision/FClimDex
         
     % Indices specification
     \bibitem{doc/ecad_old}
@@ -415,6 +433,8 @@ assert spell_length == 60
         Newer ECA\&D specification: https://code.mpimet.mpg.de/projects/cdo/embedded/cdo\_eca.pdf
     \bibitem{doc/etccdi}
         ETCCDI specification: http://etccdi.pacificclimate.org/list\_27\_indices.shtml
+    \bibitem{doc/climdex}
+        Excel climdex documentation: http://etccdi.pacificclimate.org/ClimDex/climdex-v1-3-users-guide.pdf
 
     %  research papers
     \bibitem{quote/zhang_et_al}
