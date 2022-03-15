@@ -7,6 +7,8 @@
 \usepackage{microtype}
 \usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{changepage}
+\usepackage[table]{xcolor}
 \graphicspath{{./comparison/ANN/}}
 \lstset{ % General setup for the package
     language=python,
@@ -35,7 +37,7 @@
     There are others tools to compute climate indices such the original excel scripts climdex \cite{doc/climdex} or Fclimdex \cite{gh/fclimdex} a Fortran package or CDO \cite{doc/cdo_eca} a stand-alone program.
     We choose to limit this comparison to the most up to date and maintained R package: Climpact.
 
-    The 49 indices compared here are all part of the ECA\&D specification \cite{doc/ecad_new}.
+    The 49 indices compared here are all part of the ECA\&D specification \cite{doc/ecad_new}. Each index with its definition is presented in Annexes\ref{part/annexes}.
     These 49 are a subset of the capabilities of Climpact or xclim, which are both able to compute many more indices.
     icclim v4 was designed to compute only these 49 indices and icclim v5 does the same for now.
     In this document we only present the indices showing some differences between software.
@@ -64,7 +66,11 @@ ds.to_netcdf("Climpact_full.nc",
         \end{lstlisting}
         \end{minipage}
 
-        This dataset values are over Australian region, this information is important for seasonal analysis.
+        Note that this is not a scientifically accurate way of representing `tas` variable.
+        `tas` is supposed to be the daily mean temperature which, by definition, can significantly differ from the average between a maximum and a minimum temperature.
+        However, this inaccuracy does not introduce any bias in the comparison we run here.
+
+        Also note that this dataset represents values over the Australian region. This information can be relevant to understand seasonal changes.
 
     \section{Comparison method}
         All indices are computed on an annual frequency, thus for our 20 years long dataset, we will have 20 values for each pixel (lat/lon couple).
@@ -134,7 +140,7 @@ ds.to_netcdf("Climpact_full.nc",
 
 \part{Moderately complex indices}
     These "moderately complex" indices rely on several steps algorithms to be computed.
-    It would not be reasonable to expect small differences between software.
+    It would be reasonable to expect small differences between software.
 
     \section{Filtered sums}
         [HD17, GD4] are two indices where a sum is filtered by a given threshold.
@@ -457,81 +463,104 @@ print(overlapping_event)
     Overall, out of the 49 indices, 14 of them are showing some differences and a few indices could not be compared.
     The most serious issues are:
     \begin{enumerate}
-        \item CSDI and WSDI reference period is not bootstrapped on Climpact.
-        \item Indices where a spell of consecutive days is computed can vary significantly between software.
-        \item Percentiles values are diverging with no obvious reason. However, the impact on the climate indices seems limited.
+        \item On [FD], some unexplained divergences exist between software.
+        \item On [CSU, CFD, CWD, CDD, Rx5day, WSDI, CSDI], where a spell of consecutive days is computed, the result can vary significantly between software if a significant spell last in between years.
+        \item On [TX90p, TG90p, TN90p, TX10p, TG10p, TN10p, WSDI, CSDI, R75p, R75pTOT, R95p, R95pTOT, R99p, R99pTOT], the computed percentiles values are diverging with no obvious reason. However, the impact on the climate indices results seems limited.
+        \item On [WSDI, CSDI], which depends on daily percentiles, on Climpact the reference period is not bootstrapped.
     \end{enumerate}
-    You may find in annexes a summary of all indices and their status in icclim v5.
 
     As of February 2022, icclim v4 has been fully replaced by icclim v5.
-    The variations between icclim v5 and Climpact results being reasonable, any of the two software can be trusted to conduct an climate analysis.
+    The variations between icclim v5 and Climpact results being reasonable, any of the two software can be trusted to conduct a climate analysis.
     Other factors such as the programming language, the documentation, the API and each software capabilities should be deciding factors for which software to use. 
 
 
 \part{Annexes}
+\label{part/annexes}
 
-    Table \ref{table/indices_status} presented here summarize the status of each index in icclim v5.
-    "ok" means the comparison between v5 and Climpact (or with v4 when missing) is good enough.
-    "nok" means they are some known issues with the index.
+    The ECA\&D definition of the 49 indices used in this comparison are summarized here.
+    Table\ref{table/simple_indices} presents the 21 simple indices.
+    Table\ref{table/moderate_indices} presents the 26 moderately complex indices.
+    Table\ref{table/complex_indices} presents the 2 complex indices.
+
     \begin{table}[h]
-    \begin{tabular}{l l c c}
-        Complexity   &  Index    & icclim V5 Status & Missing From Climpact \\
-        Simple(21)   &  SU       &   ok             &          X            \\
-                     &  FD       &   nok            &                       \\
-                     &  TG       &   ok             &          X            \\
-                     &  TX       &   ok             &          X            \\
-                     &  TN       &   ok             &          X            \\
-                     &  TNn      &   ok             &                       \\
-                     &  TNx      &   ok             &                       \\
-                     &  TXx      &   ok             &                       \\
-                     &  TXn      &   ok             &                       \\
-                     &  TR       &   ok             &                       \\
-                     &  ID       &   ok             &                       \\
-                     &  PRCPTOT  &   ok             &                       \\       
-                     &  RR1      &   ok             &          X            \\
-                     &  SDII     &   ok             &                       \\       
-                     &  R10mm    &   ok             &                       \\       
-                     &  R20mm    &   ok             &                       \\       
-                     &  RX1day   &   ok             &                       \\       
-                     &  SD       &   ok             &          X            \\
-                     &  SD1      &   ok             &          X            \\   
-                     &  SD5cm    &   ok             &          X            \\       
-                     &  SD50cm   &   ok             &          X            \\
-        Moderate(26) &  HD17     &   ok             &                       \\
-                     &  GD4      &   ok             &                       \\
-                     &  CSU      &   ok             &          X            \\
-                     &  CFD      &   ok             &          X            \\
-                     &  CDD      &   nok            &                       \\
-                     &  CWD      &   nok            &                       \\
-                     &  RX5day   &   nok            &                       \\
-                     &  DTR      &   ok             &                       \\
-                     &  ETR      &   ok             &                       \\
-                     &  vDTR     &   nok            &                       \\    
-                     &  CD       &   nok            &                       \\
-                     &  CW       &   nok            &                       \\
-                     &  WD       &   nok            &                       \\
-                     &  WW       &   nok            &                       \\
-                     &  TG10p    &   ok             &          X            \\
-                     &  TG90p    &   ok             &          X            \\
-                     &  TN10p    &   ok             &                       \\
-                     &  TN90p    &   ok             &                       \\
-                     &  TX10p    &   ok             &                       \\
-                     &  TX90p    &   ok             &                       \\
-                     &  R75p     &   ok             &                       \\
-                     &  R75pTOT  &   ok             &                       \\
-                     &  R95p     &   ok             &                       \\
-                     &  R95pTOT  &   ok             &                       \\
-                     &  R99p     &   ok             &                       \\
-                     &  R99pTOT  &   ok             &                       \\
-        Complex(2)   &  WSDI     &   nok            &                       \\
-                     &  CSDI     &   nok            &                       \\
+    \rowcolors{2}{gray!5}{gray!20} 
+    \begin{tabular}{l p{10cm}}
+Index short name  &   Definition                                                                                                     \\
+\hline
+    TG            &   Mean of daily mean temperature                                                                                 \\
+    TN            &   Mean of daily minimum temperature                                                                              \\
+    SD5cm         &   Number of days with snow depth >= 5 cm                                                                         \\
+    SU            &   Number of Summer Days (Tmax > 25C)                                                                             \\
+    SD            &   Mean of daily snow depth                                                                                       \\
+    TX            &   Mean of daily maximum temperature                                                                              \\
+    SD1           &   Snow days (SD >= 1 cm)                                                                                         \\
+    SD50cm        &   Number of days with snow depth >= 50 cm                                                                        \\
+    TR            &   Number of Tropical Nights (Tmin > 20C)                                                                         \\
+    TXx           &   Maximum daily maximum temperature                                                                              \\
+    TNx           &   Maximum daily minimum temperature                                                                              \\
+    CSU           &   Maximum number of consecutive summer days (Tmax >25 C)                                                         \\
+    GD4           &   Growing degree days (sum of Tmean > 4 C)                                                                       \\
+    FD            &   Number of Frost Days (Tmin < 0C)                                                                               \\
+    CFD           &   Maximum number of consecutive frost days (Tmin < 0 C)                                                          \\
+    ID            &   Number of sharp Ice Days (Tmax < 0C)                                                                           \\
+    TXn           &   Minimum daily maximum temperature                                                                              \\
+    TNn           &   Minimum daily minimum temperature                                                                              \\
+    RR1           &   Number of Wet Days (precip >= 1 mm)                                                                            \\
+    SDII          &   Average precipitation during Wet Days (SDII)                                                                   \\
+    PRCPTOT       &   Total precipitation during Wet Days                                                                            \\
     \end{tabular}
-    \label{table/indices_status}
-    \caption{Indices Status}
+    \caption{Simple indices}
+    \label{table/simple_indices}
     \end{table}
-    \pagenumbering{gobble}
 
-\clearpage
+    \begin{table}[h]
+    \rowcolors{2}{gray!5}{gray!20} 
+    \begin{tabular}{l p{10cm}}
+Index short name  &   Definition                                                                                                     \\
+\hline
+    HD17          &   Heating degree days (sum of Tmean < 17 C)                                                                      \\
+    ETR           &   Intra-period extreme temperature range                                                                         \\
+    DTR           &   Mean Diurnal Temperature Range                                                                                 \\
+    vDTR          &   Mean day-to-day variation in Diurnal Temperature Range                                                         \\
+    TG90p         &   Percentage of days when Tmean > 90th percentile                                                                \\
+    TN90p         &   Percentage of days when Tmin > 90th percentile                                                                 \\
+    TX90p         &   Percentage of days when Tmax > 90th percentile                                                                 \\
+    TG10p         &   Percentage of days when Tmean < 10th percentile                                                                \\
+    TN10p         &   Percentage of days when Tmin < 10th percentile                                                                 \\
+    TX10p         &   Percentage of days when Tmax < 10th percentile                                                                 \\
+    CDD           &   Maximum consecutive dry days (Precip < 1mm)                                                                    \\
+    CWD           &   Maximum consecutive wet days (Precip >= 1mm)                                                                   \\
+    R10mm         &   Number of heavy precipitation days (Precip >=10mm)                                                             \\
+    R20mm         &   Number of very heavy precipitation days (Precip >= 20mm)                                                       \\
+    RX1day        &   Maximum 1-day precipitation                                                                                    \\
+    RX5day        &   Maximum 5-day precipitation                                                                                    \\
+    R75p          &   Days with RR > 75th percentile of daily amounts                                                                \\
+    R75pTOT       &   Precipitation fraction due to moderate wet days (> 75th percentile)                                            \\
+    R95p          &   Days with RR > 95th percentile of daily amounts                                                                \\
+    R95pTOT       &   Precipitation fraction due to very wet days                                                                    \\
+    R99p          &   Days with RR > 99th percentile of daily amounts                                                                \\
+    R99pTOT       &   Precipitation fraction due to extremely wet days                                                               \\
+    CD            &   Days with TG < 25th percentile of daily mean temperature and RR < 25th percentile of daily precipitation sum   \\
+    CW            &   Days with TG < 25th percentile of daily mean temperature and RR > 75th percentile of daily precipitation sum   \\
+    WD            &   Days with TG > 75th percentile of daily mean temperature and RR < 25th percentile of daily precipitation sum   \\
+    WW            &   Days with TG > 75th percentile of daily mean temperature and RR > 75th percentile of daily precipitation sum   \\
+    \end{tabular}
+    \caption{Moderately complex indices}
+    \label{table/moderate_indices}
+    \end{table}
+
+    \begin{table}[h]
+    \rowcolors{2}{gray!5}{gray!20}
+    \begin{tabular}{l p{10cm}}
+Index short name  &   Definition                                                                                                     \\
+\hline
+    CSDI          &   Cold-spell duration index                                                                                      \\
+    WSDI          &   Warm-spell duration index                                                                                      \\          
+    \end{tabular}
+    \caption{Complex indices}
+    \label{table/complex_indices}
+    \end{table}
+
 \begin{thebibliography}{1}
     % Github links
     \bibitem{gh/clixmeta}
