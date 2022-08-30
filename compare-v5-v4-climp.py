@@ -52,7 +52,7 @@ class ComparableIndex:
 
 
 def run():
-    # for ind in [EcadIndex.CDD]:
+    plt.rcParams.update({'font.size': 34})
     for ind in EcadIndex: 
         v4 = None
         v4_per = None
@@ -70,16 +70,16 @@ def run():
             # v4 use another formula for rxxptot
             v4 = build_comparable(
                 ind,
-                f"{V4_PATH}{ind.index_name}_{FREQ}_icclimv4_climpSampleData_1991_2010.nc",
-                lambda x: ind.index_name,
+                f"{V4_PATH}{ind.name}_{FREQ}_icclimv4_climpSampleData_1991_2010.nc",
+                lambda x: ind.name,
                 pixel,
             )
         if ind not in Precips:
             # climp use another units or rxxp (mm)
-            if ind.index_name.lower() in climp_map.keys():
-                index = climp_map[ind.index_name.lower()]
+            if ind.name.lower() in climp_map.keys():
+                index = climp_map[ind.name.lower()]
             else:
-                index = ind.index_name.lower()
+                index = ind.name.lower()
             climp = build_comparable(
                 ind, f"{CLIMP_PATH}{index}_{FREQ}*.nc", lambda x: index, pixel
             )
@@ -95,7 +95,7 @@ def run():
             f"lon:{format(v5.pixel.stacked.values[()][1], '.3f')}"
         )
         if v5_per is None:
-            fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+            fig, axs = plt.subplots(1, 2, figsize=(40, 20), facecolor=None)
             plot_index(
                 axs=axs,
                 climp=climp,
@@ -106,7 +106,7 @@ def run():
                 pixel_name=pixel_name,
             )
         else:
-            fig, axs = plt.subplots(2, 2, figsize=(20, 10))
+            fig, axs = plt.subplots(2, 2, figsize=(40, 20), facecolor=None)
             plot_index(
                 axs=axs,
                 climp=climp,
@@ -117,8 +117,8 @@ def run():
                 pixel_name=pixel_name,
             )
             plot_percentiles(axs, climp_per, (1, 0), (1, 1), pixel_name, v5_per, v4_per)
-        fig.suptitle(ind.index_name)
-        fig.savefig(f"comparison/ANN/{ind.index_name}.png")
+        fig.suptitle(ind.name)
+        fig.savefig(f"comparison/ANN/{ind.name}.png", bbox_inches='tight')
         plt.close(fig)
 
 
@@ -141,7 +141,11 @@ def convert_unit(da, var_name: str):
 def build_comparable(index: EcadIndex, path, trans=lambda x: x, pixel=None):
     try:
         ds = xr.open_dataset(glob.glob(path)[0])
-        da = ds[trans(index.index_name)]
+        def get_da(ds, index_name):
+            for var in ds.data_vars:
+                if var.upper() == index_name.upper():
+                    return ds[var]
+        da = get_da(ds,trans(index.name))
         da = convert_unit(da, index.name)
         da_mean = da.mean(dim="lat", keep_attrs=True).mean(dim="lon", keep_attrs=True)
         if pixel is not None:
@@ -155,9 +159,9 @@ def build_comparable(index: EcadIndex, path, trans=lambda x: x, pixel=None):
 
 def get_climp_per(ind):
     if ind in PrecipsTot:
-        val = ind.index_name.lower()[:-3]
+        val = ind.name.lower()[:-3]
     else:
-        val = ind.index_name.lower()
+        val = ind.name.lower()
     climp_per = xr.open_dataset(glob.glob(f"{CLIMP_PATH}thresholds*.nc")[0]).get(
         get_climp_thresh(val), None
     )
@@ -181,7 +185,7 @@ def get_climp_per(ind):
 def get_v4_per(ind):
     v4_per = xr.open_dataset(
         glob.glob(
-            f"{V4_PATH}{ind.index_name}_{FREQ}_icclimv4_climpSampleData_1991_2010_percentile_array.nc"
+            f"{V4_PATH}{ind.name}_{FREQ}_icclimv4_climpSampleData_1991_2010_percentile_array.nc"
         )[0]
     ).get("percentiles", None)
     if v4_per is not None:
@@ -267,13 +271,13 @@ def plot_percentiles(
         axs[graph_c].set_xlabel("day of year")
         axs[graph_c].legend(prop={"size": 10})
         axs[graph_c].set_title(
-            f"Percentiles - mean on lat and lon - period {v5_per.da.climatology_bounds}"
+            f"Perc - avg on latlon - for {v5_per.da.climatology_bounds}"
         )
         axs[graph_d].set_ylabel("K")
         axs[graph_d].set_xlabel("day of year")
         axs[graph_d].legend(prop={"size": 10})
         axs[graph_d].set_title(
-            f"Percentiles - at {pixel_name} - period {v5_per.da.climatology_bounds}"
+            f"Perc - at {pixel_name} - for {v5_per.da.climatology_bounds}"
         )
     else:
         if climp_per is not None:
@@ -347,7 +351,7 @@ def plot_index(
         axs[graph_a].plot(
             v4.da.time,
             v4.mean,
-            linewidth=2,
+            linewidth=4,
             dashes=[6, 2],
             label="icclim_v4",
             color="blue",
@@ -355,26 +359,26 @@ def plot_index(
         axs[graph_b].plot(
             v4.da.time,
             v4.pixel,
-            linewidth=2,
+            linewidth=4,
             dashes=[6, 2],
             label="icclim_v4",
             color="blue",
         )
     if climp is not None:
         axs[graph_a].plot(
-            climp.da.time, climp.mean, linewidth=2, label="climpact", color="green"
+            climp.da.time, climp.mean, linewidth=4, label="climpact", color="green"
         )
         axs[graph_b].plot(
-            climp.da.time, climp.pixel, linewidth=2, label="climpact", color="green"
+            climp.da.time, climp.pixel, linewidth=4, label="climpact", color="green"
         )
     axs[graph_a].plot(
-        v5.da.time, v5.mean, linewidth=1, label="icclim_v5", color="black"
+        v5.da.time, v5.mean, linewidth=2, label="icclim_v5", color="black"
     )
     axs[graph_b].plot(
-        v5.da.time, v5.pixel, linewidth=1, label="icclim_v5", color="black"
+        v5.da.time, v5.pixel, linewidth=2, label="icclim_v5", color="black"
     )
-    axs[graph_b].legend(prop={"size": 10})
-    axs[graph_a].legend(prop={"size": 10})
+    axs[graph_b].legend(prop={"size": 30})
+    axs[graph_a].legend(prop={"size": 30})
     axs[graph_a].set_title("Mean on lat and lon")
     axs[graph_b].set_title(f"Values at {pixel_name}")
     unit = v5.pixel.attrs.get("units", None)
@@ -385,11 +389,11 @@ def plot_index(
         axs[graph_a].set_ylabel(unit)
 
 
-def get_climp_thresh(index_name):
-    prefix = index_name[0:-1]
-    if index_name == "wsdi":
+def get_climp_thresh(name):
+    prefix = name[0:-1]
+    if name == "wsdi":
         prefix = "tx90"
-    elif index_name == "csdi":
+    elif name == "csdi":
         prefix = "tn10"
     return f"{prefix}thresh"
 
